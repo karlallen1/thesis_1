@@ -28,7 +28,6 @@
 
   <!-- HEADER -->
   <header class="absolute top-0 left-0 w-full z-10 px-6 py-4 flex justify-between items-center text-white">
-
   </header>
 
   <main>
@@ -95,7 +94,7 @@
 
   </main>
 
-  <!-- SCROLL INDICATOR SCRIPT -->
+  <!-- SCROLL INDICATOR + AUTO-SCROLL SCRIPT -->
   <script>
     const indicator = document.getElementById('scroll-indicator');
     const main = document.querySelector('main');
@@ -105,6 +104,14 @@
       const scrollHeight = main.scrollHeight - main.clientHeight;
       const scrollPercent = (scrollTop / scrollHeight) * 100;
       indicator.style.width = scrollPercent + "%";
+    });
+
+    // Auto-scroll immediately after page load
+    window.addEventListener('load', () => {
+      const sections = document.querySelectorAll('main section');
+      if (sections.length > 1) {
+        sections[1].scrollIntoView({ behavior: 'smooth' });
+      }
     });
   </script>
 

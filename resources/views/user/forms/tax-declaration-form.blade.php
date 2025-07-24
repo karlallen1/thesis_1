@@ -17,18 +17,32 @@
       <!-- Email -->
       <div>
         <label class="block font-semibold mb-1">Email</label>
-        <input type="email" x-model="form.email" placeholder="juan@example.com"
-          class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-lg" required>
+        <input type="email"
+          x-model="form.email"
+          @input="validateEmail"
+          :class="{'border-red-500 focus:ring-red-500': !isEmailValid && form.email.length > 0, 'border-gray-300': isEmailValid || form.email.length === 0}"
+          placeholder="juan@gmail.com"
+          class="w-full p-3 border rounded-lg focus:ring-2 text-lg"
+          required>
+        <p x-show="!isEmailValid && form.email.length > 0" class="text-red-500 text-sm mt-1">
+          Email is incorrect. Must end with <strong>@gmail.com</strong> or <strong>@yahoo.com</strong> (case-sensitive)
+        </p>
       </div>
 
       <!-- Contact -->
-      <div>
-        <label class="block font-semibold mb-1">Contact Number</label>
-        <input type="text" x-model="form.contact" @input="autoFormatContact"
-          class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-lg"
-          placeholder="+63 912 345 6789" maxlength="16" required>
-      </div>
-
+ <div>
+  <label class="block font-semibold mb-1">Contact Number</label>
+  <div class="flex items-center space-x-2">
+    <img src="{{ asset('img/circle.png') }}" alt="Philippine Flag" class="w-6 h-4 object-cover rounded-sm border">
+    <input type="text" x-model="form.contact" @input="autoFormatContact(); validateContact()"
+      :class="{'border-red-500 focus:ring-red-500': !isContactValid && form.contact.length > 0, 'border-gray-300': isContactValid || form.contact.length === 0}"
+      class="flex-1 p-3 border rounded-lg focus:ring-2 text-lg"
+      placeholder="+63 912 345 6789" maxlength="16" required>
+  </div>
+  <p x-show="!isContactValid && form.contact.length > 0" class="text-red-500 text-sm mt-1">
+    Contact number must follow +63 format and contain exactly 10 digits
+  </p>
+</div>
       <!-- Name Fields -->
       <div>
         <label class="block font-semibold mb-1">First Name</label>
@@ -36,10 +50,10 @@
           class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-lg" required>
       </div>
       <div>
-        <label class="block font-semibold mb-1">Middle Name</label>
-        <input type="text" x-model="form.middle_name" placeholder="Reyes"
-          class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-lg">
-      </div>
+  <label class="block font-semibold mb-1 text-gray-700">Middle Name <span class="text-sm text-gray-500">(optional)</span></label>
+  <input type="text" x-model="form.middle_name" placeholder="Reyes"
+    class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-lg text-gray-700 placeholder-gray-400 opacity-80">
+</div>
       <div>
         <label class="block font-semibold mb-1">Last Name</label>
         <input type="text" x-model="form.last_name" placeholder="Dela Cruz"
@@ -48,11 +62,10 @@
 
       <!-- Birthdate -->
       <div>
-        <label class="block font-semibold mb-1">Birthdate</label>
-        <input type="text" x-model="form.birthdate" @input="autoFormatDate"
-          class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-lg"
-          placeholder="MM/DD/YYYY" maxlength="10" required>
-      </div>
+  <label class="block font-semibold mb-1">Birthdate</label>
+  <input type="date" x-model="form.birthdate"
+    class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-lg" required>
+</div>
 
       <!-- Age -->
       <div>
@@ -92,7 +105,7 @@
     </form>
   </div>
 
-  <!-- ✅ Confirmation Modal -->
+  <!-- Confirmation Modal -->
   <div x-show="showingModal" x-transition class="fixed inset-0 bg-black bg-opacity-50 z-40 flex items-center justify-center">
     <div class="bg-white p-6 rounded-xl shadow-lg w-full max-w-lg mx-auto">
       <h2 class="text-xl font-bold mb-4 text-center">Review Your Details</h2>
@@ -115,7 +128,7 @@
     </div>
   </div>
 
-  <!-- ✅ Thank You Modal -->
+  <!-- Thank You Modal -->
   <div x-show="thankYouModal" x-transition class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
     <div class="bg-white p-6 rounded-xl shadow-lg w-full max-w-md text-center">
       <h2 class="text-2xl font-bold text-green-600 mb-4">Thank You!</h2>
@@ -127,7 +140,7 @@
     </div>
   </div>
 
-  <!-- ✅ Alpine.js Logic -->
+  <!-- Alpine.js Logic -->
   <script>
     function formApp() {
       return {
@@ -145,6 +158,8 @@
         },
         showingModal: false,
         thankYouModal: false,
+        isEmailValid: true,
+        isContactValid: true,
 
         init() {
           const params = new URLSearchParams(window.location.search);
@@ -160,6 +175,11 @@
           this.form.contact = '+63 ' + formatted.trim();
         },
 
+        validateContact() {
+          const pattern = /^\+63\d{10}$/;
+          this.isContactValid = pattern.test(this.form.contact.replace(/\s/g, ''));
+        },
+
         autoFormatDate() {
           let val = this.form.birthdate.replace(/\D/g, '');
           if (val.length >= 3) val = val.slice(0, 2) + '/' + val.slice(2);
@@ -173,7 +193,16 @@
           this.form.pwd_id = parts.filter(Boolean).join('-');
         },
 
+        validateEmail() {
+          const email = this.form.email;
+          this.isEmailValid = email.endsWith('@gmail.com') || email.endsWith('@yahoo.com');
+        },
+
         showModal() {
+          if (!this.isEmailValid || !this.isContactValid) {
+            alert('Please correct the errors in your email or contact number before proceeding.');
+            return;
+          }
           this.showingModal = true;
         },
 
@@ -214,6 +243,8 @@
             pwd_id: '',
             service_type: this.form.service_type
           };
+          this.isEmailValid = true;
+          this.isContactValid = true;
         }
       }
     }

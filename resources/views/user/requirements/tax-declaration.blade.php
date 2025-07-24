@@ -30,7 +30,7 @@
             <template x-for="(item, index) in requirements" :key="index">
               <label class="flex items-start gap-3 bg-white p-3 rounded-md shadow-sm hover:bg-gray-100 transition">
                 <input type="checkbox" class="mt-1 w-5 h-5 text-amber-600 border-gray-300 rounded" x-model="checked[index]">
-                <span class="text-gray-900" x-text="item"></span>
+                <span class="text-gray-900" x-html="item"></span>
               </label>
             </template>
 
@@ -89,17 +89,17 @@
       const urlParams = new URLSearchParams(window.location.search);
       const serviceType = urlParams.get('service_type') || 'Unknown';
 
-      return {
-        requirements: [
-          'Barangay Clearance',
-          'Cedula (Community Tax Certificate)',
-          'Valid ID (Government-issued)',
-          'Tax Declaration',
-          'Proof of Ownership',
-          'TCT / Deed of Sale',
-          'Certificate of Occupancy',
-          'Latest Tax Receipt',
-        ],
+     return {
+  requirements: [
+    'Barangay Clearance <span class="opacity-70">(MUST BE VALID FOR SIX MONTHS FROM DATE ISSUED)</span>',
+    'Cedula <span class="opacity-70">(COMMUNITY TAX CERTIFICATE, ONE YEAR VALID FROM DATE ISSUED)</span>',
+    'Valid ID <span class="opacity-70">(GOVERNMENT-ISSUED, NOT EXPIRED)</span>',
+    'Tax Declaration',
+    'Proof of Ownership', 
+    'TCT / Deed of Sale',
+    'Certificate of Occupancy',
+    'Latest Tax Receipt <span class="opacity-70">(FIVE (5) YEARS FROM THE DATE OF THE ATP)</span>',
+  ],
         checked: [],
         showReminder: false,
         serviceType: serviceType,
