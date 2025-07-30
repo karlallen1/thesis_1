@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Tax Declaration Requirements</title>
+  <title>Non-Property Holdings Requirements</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/alpinejs" defer></script>
 </head>
@@ -30,7 +30,7 @@
             <template x-for="(item, index) in requirements" :key="index">
               <label class="flex items-start gap-3 bg-white p-3 rounded-md shadow-sm hover:bg-gray-100 transition">
                 <input type="checkbox" class="mt-1 w-5 h-5 text-amber-600 border-gray-300 rounded" x-model="checked[index]">
-                <span class="text-gray-900" x-html="item"></span>
+                <span class="text-gray-900" x-text="item"></span>
               </label>
             </template>
 
@@ -83,23 +83,16 @@
     </div>
   </div>
 
-  <!-- AlpineJS Logic -->
+    <!-- AlpineJS Logic -->
   <script>
     function requirementFormHandler() {
       const urlParams = new URLSearchParams(window.location.search);
       const serviceType = urlParams.get('service_type') || 'Unknown';
 
-     return {
-  requirements: [
-    'Barangay Clearance <span class="opacity-70">(MUST BE VALID FOR SIX MONTHS FROM DATE ISSUED)</span>',
-    'Cedula <span class="opacity-70">(COMMUNITY TAX CERTIFICATE, ONE YEAR VALID FROM DATE ISSUED)</span>',
-    'Valid ID <span class="opacity-70">(GOVERNMENT-ISSUED, NOT EXPIRED)</span>',
-    'Tax Declaration',
-    'Proof of Ownership', 
-    'TCT / Deed of Sale',
-    'Certificate of Occupancy',
-    'Latest Tax Receipt <span class="opacity-70">(FIVE (5) YEARS FROM THE DATE OF THE ATP)</span>',
-  ],
+      return {
+        requirements: [
+          'KIOSK',
+        ],
         checked: [],
         showReminder: false,
         serviceType: serviceType,
@@ -127,26 +120,40 @@
         confirmProceed() {
           this.showReminder = false;
 
+          // DEBUG: Log current URL and detection
+          console.log('Current URL:', window.location.pathname);
+          const isKiosk = window.location.pathname.includes('/kiosk/');
+          console.log('Is Kiosk Mode?', isKiosk);
+          console.log('Service Type:', this.serviceType);
+
           let targetPath = '';
 
-          switch (this.serviceType.toLowerCase()) {
-            case 'tax declaration':
-              targetPath = 'tax-declaration-form';
-              break;
-            case 'certificate of no improvement':
-              targetPath = 'no-improvement';
-              break;
-            case 'certificate of property holdings':
-              targetPath = 'property-holdings';
-              break;
-            case 'certificate of non-property holdings':
-              targetPath = 'non-property-holdings';
-              break;
-            default:
-              targetPath = 'tax-declaration-form';
+          if (isKiosk) {
+            console.log('ROUTING TO KIOSK FORMS');
+            // Kiosk routing
+            switch (this.serviceType.toLowerCase()) {
+              case 'tax declaration':
+                targetPath = '/kiosk/forms/tax-declaration';
+                break;
+              case 'certificate of no improvement':
+                targetPath = '/kiosk/forms/no-improvement';
+                break;
+              case 'certificate of property holdings':
+                targetPath = '/kiosk/forms/property-holdings';
+                break;
+              case 'certificate of non-property holdings':
+                targetPath = '/kiosk/forms/non-property-holdings';
+                break;
+              default:
+                targetPath = '/kiosk/forms/tax-declaration';
+            }
+        
           }
 
-          window.location.href = `/forms/${targetPath}?service_type=${encodeURIComponent(this.serviceType)}`;
+          console.log('Target Path:', targetPath);
+          console.log('Full URL:', `${targetPath}?service_type=${encodeURIComponent(this.serviceType)}`);
+
+          window.location.href = `${targetPath}?service_type=${encodeURIComponent(this.serviceType)}`;
         }
       }
     }

@@ -24,7 +24,7 @@ class AdminAuthController extends Controller
                 'username' => $admin->username,
                 'role' => $admin->role,
             ]);
-            return redirect('/dashboard');
+            return redirect('/admin/dashboard-main')->with('success', 'Login successful');
         }
 
         return back()->with('error', 'Invalid username or password');
@@ -34,7 +34,7 @@ class AdminAuthController extends Controller
     public function logout()
     {
         session()->flush();
-        return redirect('/login');
+        return redirect('/admin/login');
     }
 
     public function showLoginForm()

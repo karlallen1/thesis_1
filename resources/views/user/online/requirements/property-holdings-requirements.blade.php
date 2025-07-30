@@ -135,13 +135,13 @@
               targetPath = 'tax-declaration-form';
               break;
             case 'certificate of no improvement':
-              targetPath = 'no-improvement';
+              targetPath = 'no-improvement-form';
               break;
             case 'certificate of property holdings':
-              targetPath = 'property-holdings';
+              targetPath = 'property-holdings-form';
               break;
             case 'certificate of non-property holdings':
-              targetPath = 'non-property-holdings';
+              targetPath = 'non-property-holdings-form';
               break;
             default:
               targetPath = 'tax-declaration-form';

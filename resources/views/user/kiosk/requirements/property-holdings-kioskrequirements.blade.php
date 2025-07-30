@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Tax Declaration Requirements</title>
+  <title>Certificate of Property Holdings Requirements</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/alpinejs" defer></script>
 </head>
@@ -25,8 +25,6 @@
         <!-- Checklist Form -->
         <form class="flex flex-col flex-1 min-h-0">
           <div class="flex-1 min-h-0 overflow-y-auto pr-2 space-y-3 text-black text-base leading-relaxed">
-
-            <!-- Checklist -->
             <template x-for="(item, index) in requirements" :key="index">
               <label class="flex items-start gap-3 bg-white p-3 rounded-md shadow-sm hover:bg-gray-100 transition">
                 <input type="checkbox" class="mt-1 w-5 h-5 text-amber-600 border-gray-300 rounded" x-model="checked[index]">
@@ -37,8 +35,6 @@
             <!-- Checklist Counter -->
             <div class="pt-3 text-sm text-gray-700 font-medium">
               <span x-text="`${checkedCount} of ${requirements.length} items checked`"></span>
-
-              <!-- Progress Bar -->
               <div class="w-full h-3 mt-2 bg-gray-300 rounded-full overflow-hidden">
                 <div class="h-full bg-amber-600 transition-all duration-300" :style="{ width: progressPercent + '%' }"></div>
               </div>
@@ -87,19 +83,10 @@
   <script>
     function requirementFormHandler() {
       const urlParams = new URLSearchParams(window.location.search);
-      const serviceType = urlParams.get('service_type') || 'Unknown';
+      const serviceType = urlParams.get('service_type') || 'Certificate of Property Holdings';
 
       return {
-        requirements: [
-          'Barangay Clearance',
-          'Cedula (Community Tax Certificate)',
-          'Valid ID (Government-issued)',
-          'Tax Declaration',
-          'Proof of Ownership',
-          'TCT / Deed of Sale',
-          'Certificate of Occupancy',
-          'Latest Tax Receipt',
-        ],
+        requirements: ['Tax Declaration', 'Valid ID', 'Barangay Certificate'],
         checked: [],
         showReminder: false,
         serviceType: serviceType,
@@ -127,26 +114,8 @@
         confirmProceed() {
           this.showReminder = false;
 
-          let targetPath = '';
-
-          switch (this.serviceType.toLowerCase()) {
-            case 'tax declaration':
-              targetPath = 'tax-declaration-form';
-              break;
-            case 'certificate of no improvement':
-              targetPath = 'no-improvement';
-              break;
-            case 'certificate of property holdings':
-              targetPath = 'property-holdings';
-              break;
-            case 'certificate of non-property holdings':
-              targetPath = 'non-property-holdings';
-              break;
-            default:
-              targetPath = 'tax-declaration-form';
-          }
-
-          window.location.href = `/forms/${targetPath}?service_type=${encodeURIComponent(this.serviceType)}`;
+          let targetPath = '/kiosk/forms/property-holdings'; // force kiosk route only
+          window.location.href = `${targetPath}?service_type=${encodeURIComponent(this.serviceType)}`;
         }
       }
     }
