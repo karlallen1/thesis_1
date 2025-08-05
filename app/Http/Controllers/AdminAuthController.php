@@ -24,7 +24,15 @@ class AdminAuthController extends Controller
                 'username' => $admin->username,
                 'role' => $admin->role,
             ]);
-            return redirect('/admin/dashboard-main')->with('success', 'Login successful');
+
+            // Redirect based on role using named routes
+            if ($admin->role === 'main_admin') {
+                return redirect()->route('admin.dashboard-main')->with('success', 'Login successful');
+            } elseif ($admin->role === 'staff') {
+                return redirect()->route('admin.dashboard-staff')->with('success', 'Login successful');
+            } else {
+                return back()->with('error', 'Unknown role. Please contact system administrator.');
+            }
         }
 
         return back()->with('error', 'Invalid username or password');
@@ -34,11 +42,12 @@ class AdminAuthController extends Controller
     public function logout()
     {
         session()->flush();
-        return redirect('/admin/login');
+        return redirect()->route('admin.login')->with('success', 'Logged out successfully');
     }
 
+    // SHOW LOGIN FORM
     public function showLoginForm()
-{
-    return view('admin.login'); // make sure this blade exists
-}
+    {
+        return view('admin.login');
+    }
 }

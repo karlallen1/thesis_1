@@ -84,7 +84,8 @@ class QueueController extends Controller
                 'id' => $application->id,
                 'queue_number' => $queueNumber,
                 'queue_entered_at' => $application->queue_entered_at->toDateTimeString(),
-                'is_priority' => $application->isPriority()
+                'is_priority' => $application->isPriority(),
+                'priority_type' => $application->getPriorityType()
             ]);
 
             $this->printQueueTicket($application);
@@ -98,7 +99,6 @@ class QueueController extends Controller
                 'priority_type' => $application->getPriorityType(),
                 'estimated_wait' => $this->calculateEstimatedWait($application)
             ]);
-
         } catch (\Illuminate\Validation\ValidationException $e) {
             Log::warning('Kiosk validation failed', ['errors' => $e->errors()]);
             return response()->json([
@@ -196,11 +196,10 @@ class QueueController extends Controller
                 'priority_type' => $application->getPriorityType(),
                 'estimated_wait' => $this->calculateEstimatedWait($application)
             ]);
-
         } catch (\Exception $e) {
             Log::error('QR scan entry failed', [
                 'error' => $e->getMessage(),
-                'token' => $request->get('token')
+                'token' => $token
             ]);
             return view('queue.scan', [
                 'success' => false,
@@ -212,7 +211,7 @@ class QueueController extends Controller
     }
 
     /**
-     * ✅ Get current queue status (AJAX) - Matches queuestatus.blade.php expectations
+     * ✅ Get current queue status (AJAX) - For Admin Dashboard (queuestatus.blade.php)
      */
     public function index(Request $request)
     {
@@ -234,6 +233,7 @@ class QueueController extends Controller
 
             $cancelledCount = Application::where('entered_queue', true)
                 ->where('status', 'cancelled')
+                ->whereDate('updated_at', today())
                 ->count();
 
             $formattedPriority = $priorityApplications->map(function ($app) {
@@ -283,7 +283,6 @@ class QueueController extends Controller
                 'regular' => $formattedRegular,
                 'cancelled' => $cancelledCount,
             ]);
-
         } catch (\Exception $e) {
             Log::error('Queue index failed', ['error' => $e->getMessage()]);
             return response()->json([
@@ -291,6 +290,64 @@ class QueueController extends Controller
                 'priority' => [],
                 'regular' => [],
                 'cancelled' => 0,
+            ], 500);
+        }
+    }
+
+    /**
+     * ✅ NEW: Public Queue Display Data - For client-facing screen
+     */
+    public function displayData(Request $request)
+    {
+        try {
+            $applications = Application::where('entered_queue', true)
+                ->where('status', 'pending')
+                ->orderBy('queue_number')
+                ->get();
+
+            $priority = $applications->filter(fn($app) => $app->isPriority())->take(5);
+            $regular = $applications->filter(fn($app) => !$app->isPriority())->take(5);
+
+            $nowServing = QueueState::getNowServing();
+
+            $formattedNowServing = $nowServing ? [
+                'id' => $nowServing->id,
+                'queue_number' => $nowServing->queue_number,
+                'full_name' => $nowServing->full_name,
+                'service_type' => $nowServing->service_type,
+                'is_priority' => $nowServing->isPriority(),
+                'priority_type' => $nowServing->getPriorityType(),
+            ] : null;
+
+            $nextPriority = $priority->map(function ($app) {
+                return [
+                    'queue_number' => $app->queue_number,
+                    'name' => $app->full_name,
+                    'service_type' => $app->service_type,
+                    'is_priority' => true,
+                ];
+            });
+
+            $nextRegular = $regular->map(function ($app) {
+                return [
+                    'queue_number' => $app->queue_number,
+                    'name' => $app->full_name,
+                    'service_type' => $app->service_type,
+                    'is_priority' => false,
+                ];
+            });
+
+            return response()->json([
+                'now_serving' => $formattedNowServing,
+                'priority' => $nextPriority,
+                'regular' => $nextRegular,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Public queue display data failed', ['error' => $e->getMessage()]);
+            return response()->json([
+                'now_serving' => null,
+                'priority' => [],
+                'regular' => [],
             ], 500);
         }
     }
@@ -310,6 +367,7 @@ class QueueController extends Controller
             $regularApps = $applications->filter(fn($app) => !$app->isPriority());
 
             $nextApplication = null;
+
             if ($priorityApps->isNotEmpty()) {
                 $nextApplication = $priorityApps->sortBy('queue_number')->first();
             } elseif ($regularApps->isNotEmpty()) {
@@ -346,7 +404,6 @@ class QueueController extends Controller
                     'email' => $nextApplication->email
                 ]
             ]);
-
         } catch (\Exception $e) {
             Log::error('Next queue failed', ['error' => $e->getMessage()]);
             return response()->json([
@@ -373,11 +430,11 @@ class QueueController extends Controller
             }
 
             Log::info('Application completed', ['application_id' => $id]);
+
             return response()->json([
                 'success' => true,
                 'message' => 'Service completed successfully.'
             ]);
-
         } catch (\Exception $e) {
             Log::error('Complete application failed', ['error' => $e->getMessage(), 'id' => $id]);
             return response()->json([
@@ -404,11 +461,11 @@ class QueueController extends Controller
             }
 
             Log::info('Application cancelled', ['application_id' => $id]);
+
             return response()->json([
                 'success' => true,
                 'message' => 'Application cancelled successfully.'
             ]);
-
         } catch (\Exception $e) {
             Log::error('Cancel application failed', ['error' => $e->getMessage(), 'id' => $id]);
             return response()->json([
@@ -435,11 +492,11 @@ class QueueController extends Controller
             }
 
             Log::info('Application requeued', ['application_id' => $id]);
+
             return response()->json([
                 'success' => true,
                 'message' => 'Application requeued successfully.'
             ]);
-
         } catch (\Exception $e) {
             Log::error('Requeue application failed', ['error' => $e->getMessage(), 'id' => $id]);
             return response()->json([
@@ -503,6 +560,7 @@ class QueueController extends Controller
         $last = Application::whereDate('created_at', today())
             ->where('entered_queue', true)
             ->max('queue_number');
+
         return ($last ? (int)$last : 0) + 1;
     }
 
@@ -517,10 +575,11 @@ class QueueController extends Controller
             ->count();
 
         $estimatedMinutes = $position * 7;
+
         if ($estimatedMinutes <= 0) return 'You\'re next!';
         if ($estimatedMinutes < 5) return 'Less than 5 minutes';
         if ($estimatedMinutes < 60) return $estimatedMinutes . ' minutes';
-        
+
         $hours = floor($estimatedMinutes / 60);
         $minutes = $estimatedMinutes % 60;
         return $hours . 'h ' . ($minutes > 0 ? $minutes . 'm' : '');

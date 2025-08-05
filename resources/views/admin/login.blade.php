@@ -1,106 +1,98 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>North Caloocan City Hall</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    .font-georgia {
-      font-family: Georgia, 'Times New Roman', Times, serif;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login - NCC</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .font-georgia { font-family: Georgia, 'Times New Roman', Times, serif; }
+    </style>
 </head>
-<body class="relative bg-gradient-to-br from-blue-50 to-blue-200 min-h-screen flex flex-col">
-  <!-- Background Image -->
-  <img src="{{ asset('img/bg1.jpg') }}" alt="Background" class="absolute inset-0 w-full h-full object-cover z-0 opacity-20 pointer-events-none" />
-
-  <!-- Header -->
-  <header class="relative z-10 bg-white shadow p-4 md:p-6">
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-      <!-- Left Side -->
-      <div class="flex items-center space-x-3">
-        <img src="{{ asset('img/mainlogo.png') }}" alt="Logo1" class="w-12 h-12 sm:w-16 sm:h-16 object-contain" />
-        <h2 class="font-georgia text-base sm:text-lg md:text-xl font-bold text-gray-800">
-          <u>REPUBLIC OF THE PHILIPPINES</u><br>
-          <span class="font-semibold">Caloocan City Hall</span>
-        </h2>
-      </div>
-      <!-- Right Side -->
-      <div class="flex items-center space-x-3">
-        <p id="datetime" class="text-xs sm:text-sm text-gray-600"></p>
-        <img src="{{ asset('img/philogo.png') }}" alt="Logo2" class="w-12 h-12 sm:w-16 sm:h-16 object-contain" />
-      </div>
-    </div>
-  </header>
-
-  <!-- Login Card -->
-  <div class="relative z-10 flex flex-1 items-center justify-center px-4 py-12">
-    <div class="w-full max-w-md bg-white rounded-2xl shadow-2xl p-8">
-      <p class="font-georgia text-2xl font-bold text-center text-blue-700 mb-2">Welcome!</p>
-      <p class="font-georgia text-center text-gray-600 mb-6">Sign in to continue</p>
-
-      @if(session('error'))
-        <div class="bg-red-100 text-red-700 text-sm p-2 mb-4 rounded">
-          {{ session('error') }}
-        </div>
-      @endif
-
-      <form method="POST" action="{{ route('admin.login') }}" class="space-y-6">
-        @csrf
-
-        <!-- USERNAME -->
-        <div>
-          <label for="username" class="block text-sm font-medium text-gray-700 mb-1">Username:</label>
-          <input type="text" id="username" name="username" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400" />
-          @error('username')
-          <p class="text-red-600 text-xs mt-1">{{ $message }}</p>
-          @enderror
+<body class="bg-gradient-to-br from-[#1B3C53] to-[#2C5F7A] min-h-screen flex items-center justify-center">
+    
+    <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-georgia font-bold text-[#1B3C53] mb-2">NCC Admin</h1>
+            <p class="text-gray-600">Administrator Access Portal</p>
         </div>
 
-        <!-- Password -->
-        <div>
-          <label for="password" class="block text-sm font-medium text-gray-700 mb-1">Password:</label>
-          <div class="relative">
-            <input type="password" id="password" name="password" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 pr-10" />
-            <button type="button" id="togglePassword" class="absolute inset-y-0 right-0 flex items-center px-2 text-gray-600">
-              <span id="toggleIcon">Show</span>
+        <!-- Alert Messages -->
+        @if(session('error'))
+        <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
+            <div class="flex items-center">
+                <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                </svg>
+                {{ session('error') }}
+            </div>
+        </div>
+        @endif
+
+        @if(session('success'))
+        <div class="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg mb-6">
+            <div class="flex items-center">
+                <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                </svg>
+                {{ session('success') }}
+            </div>
+        </div>
+        @endif
+
+        <!-- Login Form -->
+        <form method="POST" action="{{ route('admin.login') }}" class="space-y-6">
+            @csrf
+            
+            <div>
+                <label for="username" class="block text-sm font-semibold text-gray-700 mb-2">Username</label>
+                <input type="text" 
+                       id="username" 
+                       name="username" 
+                       value="{{ old('username') }}"
+                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1B3C53] focus:border-transparent transition @error('username') border-red-500 @enderror"
+                       placeholder="Enter your username"
+                       required 
+                       autofocus>
+                @error('username')
+                <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                @enderror
+            </div>
+
+            <div>
+                <label for="password" class="block text-sm font-semibold text-gray-700 mb-2">Password</label>
+                <input type="password" 
+                       id="password" 
+                       name="password" 
+                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1B3C53] focus:border-transparent transition @error('password') border-red-500 @enderror"
+                       placeholder="Enter your password"
+                       required>
+                @error('password')
+                <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                @enderror
+            </div>
+
+            <button type="submit" 
+                    class="w-full bg-[#1B3C53] hover:bg-[#2C5F7A] text-white font-semibold py-3 px-4 rounded-lg transition duration-200 transform hover:scale-[1.02] active:scale-[0.98]">
+                Sign In
             </button>
-          </div>
-          @error('password')
-          <p class="text-red-600 text-xs mt-1">{{ $message }}</p>
-          @enderror
+        </form>
+
+        <!-- Footer -->
+        <div class="mt-8 text-center">
+            <p class="text-sm text-gray-500">
+                NCC Administrator Portal
+                <br>
+                <span class="text-xs">Authorized Personnel Only</span>
+            </p>
         </div>
-
-        <!-- Submit Button -->
-        <button type="submit"
-          class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg transition duration-200">
-          LOGIN
-        </button>
-      </form>
     </div>
-  </div>
 
-  <script>
-    const togglePassword = document.getElementById('togglePassword');
-    const passwordInput = document.getElementById('password');
-    const toggleIcon = document.getElementById('toggleIcon');
-
-    togglePassword.addEventListener('click', () => {
-      const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
-      passwordInput.setAttribute('type', type);
-      toggleIcon.textContent = type === 'password' ? 'Show' : 'Hide';
-    });
-
-    function updateDateTime() {
-      const now = new Date();
-      document.getElementById("datetime").textContent = now.toLocaleString("en-US", {
-        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
-        hour: '2-digit', minute: '2-digit', hour12: true
-      });
-    }
-    setInterval(updateDateTime, 1000);
-    updateDateTime();
-  </script>
+    <!-- Background Animation -->
+    <div class="fixed inset-0 overflow-hidden pointer-events-none">
+        <div class="absolute -top-1/2 -right-1/2 w-96 h-96 bg-white opacity-5 rounded-full animate-pulse"></div>
+        <div class="absolute -bottom-1/2 -left-1/2 w-96 h-96 bg-white opacity-5 rounded-full animate-pulse" style="animation-delay: 2s;"></div>
+    </div>
 </body>
 </html>

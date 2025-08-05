@@ -24,49 +24,81 @@
 </head>
 <body class="bg-gray-100 font-sans">
 
-    <div class="flex h-screen">
+    <div class="flex min-h-screen">
 
         <!-- Sidebar -->
-        <aside class="w-64 bg-[#1B3C53] text-white flex flex-col">
+        <aside class="w-64 bg-[#1B3C53] text-white flex flex-col fixed h-full">
             <!-- Top Section -->
-            <div class="flex items-center px-6 h-20 border-b border-[#244C66]">
-                <div class="bg-white rounded-full w-12 h-12 flex items-center justify-center">
-                    <img src="{{ asset('img/admin.png') }}" alt="Admin Icon" class="w-8 h-8" />
-                </div>
-                <div class="ml-4 flex flex-col leading-tight">
-                    <span class="text-sm font-semibold">NCC Admin</span>
-                    <span class="text-xs text-gray-200">Head Admin</span>
-                </div>
+            <div class="p-6 border-b border-[#244C66]">
+                <h1 class="text-2xl font-georgia font-bold">
+                        @if(session('role') === 'main_admin')
+                            NCC Admin
+                        @else
+                            NCC Staff
+                        @endif
+                </h1>
+                <p class="text-sm text-gray-300 mt-3">
+                    Welcome, {{ session('username') }}<br>
+                    <span class="text-xs bg-blue-600 px-2 py-1 rounded ml-2">
+                        {{ str_replace('_', ' ', ucwords(session('role'))) }}
+                    </span>
+                </p>
             </div>
 
             <!-- Navigation -->
             <nav class="flex-1 px-8 py-6 space-y-6">
-                <a href="{{ route('admin.dashboard-main') }}" class="block text-xl font-georgia text-white transition {{ request()->routeIs('admin.dashboard-main') ? 'opacity-100 grayscale-0 underline' : 'opacity-50 grayscale hover:underline' }}">
-                    Dashboard
-                </a>
-                <a href="{{ route('admin.usermanagement') }}" class="block text-xl font-georgia text-white transition {{ request()->routeIs('admin.usermanagement') ? 'opacity-100 grayscale-0 underline' : 'opacity-50 grayscale hover:underline' }}">
-                    User Management
-                </a>
+                <!-- Dashboard Link - Different for each role -->
+                @if(session('role') === 'main_admin')
+                    <a href="{{ route('admin.dashboard-main') }}" class="block text-xl font-georgia text-white transition {{ request()->routeIs('admin.dashboard-main') ? 'opacity-100 grayscale-0 underline' : 'opacity-50 grayscale hover:underline' }}">
+                        Dashboard
+                    </a>
+                @else
+                    <a href="{{ route('admin.dashboard-staff') }}" class="block text-xl font-georgia text-white transition {{ request()->routeIs('admin.dashboard-staff') ? 'opacity-100 grayscale-0 underline' : 'opacity-50 grayscale hover:underline' }}">
+                        Dashboard
+                    </a>
+                @endif
+
+                <!-- User Management - Main Admin Only -->
+                @if(session('role') === 'main_admin')
+                    <a href="{{ route('admin.usermanagement') }}" class="block text-xl font-georgia text-white transition {{ request()->routeIs('admin.usermanagement') ? 'opacity-100 grayscale-0 underline' : 'opacity-50 grayscale hover:underline' }}">
+                        User Management
+                    </a>
+                @endif
+
+                <!-- Queue Status - Available to Both -->
                 <a href="{{ route('admin.queuestatus') }}" class="block text-xl font-georgia text-white transition {{ request()->routeIs('admin.queuestatus') ? 'opacity-100 grayscale-0 underline' : 'opacity-50 grayscale hover:underline' }}">
                     Queue Status
                 </a>
-                <a href="{{ route('admin.systemlogs') }}" class="block text-xl font-georgia text-white transition {{ request()->routeIs('admin.systemlogs') ? 'opacity-100 grayscale-0 underline' : 'opacity-50 grayscale hover:underline' }}">
-                    System Logs
-                </a>
+
+                <!-- System Logs - Main Admin Only -->
+                @if(session('role') === 'main_admin')
+                    <a href="{{ route('admin.systemlogs') }}" class="block text-xl font-georgia text-white transition {{ request()->routeIs('admin.systemlogs') ? 'opacity-100 grayscale-0 underline' : 'opacity-50 grayscale hover:underline' }}">
+                        System Logs
+                    </a>
+                @endif
             </nav>
 
 
         </aside>
 
         <!-- Main Content -->
-        <main class="flex-1 flex flex-col bg-[#c0c0ca]">
+        <main class="flex-1 flex flex-col bg-[#c0c0ca] ml-64">
 
             <!-- Header -->
             <header class="px-8 py-4 border-b border-gray-300 bg-[#afafb4] flex justify-between items-center">
-                <h1 class="text-2xl font-georgia font-semibold">Queue Status</h1>
-                <div class="flex items-center space-x-2 text-sm text-gray-600">
-                    <div class="w-2 h-2 bg-green-500 rounded-full pulse"></div>
-                    <span>Live Data</span>
+                <div class="flex items-center space-x-3">
+                    <img src="{{ asset('img/philogo.png') }}" alt="PH Logo" class="w-12 h-12 object-contain" />
+                    <h1 class="text-2xl font-georgia font-semibold text-gray-800">North Caloocan City Hall - Queue Status</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="flex items-center space-x-2 text-sm text-gray-600">
+                        <div class="w-2 h-2 bg-green-500 rounded-full pulse"></div>
+                        <span>Live Data</span>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-sm text-gray-600">Welcome, <span class="font-semibold">{{ session('username') }}</span></p>
+                        <p class="text-xs text-gray-500">{{ str_replace('_', ' ', ucwords(session('role'))) }}</p>
+                    </div>
                 </div>
             </header>
 
@@ -118,33 +150,45 @@
             <!-- Priority Queue -->
             <section class="px-8 py-6">
                 <h2 class="text-xl font-georgia font-semibold mb-4">Priority Queue</h2>
-                <table class="w-full bg-white rounded-xl shadow overflow-hidden">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th class="px-6 py-3 text-left text-sm font-semibold">Queue #</th>
-                            <th class="px-6 py-3 text-left text-sm font-semibold">Name</th>
-                            <th class="px-6 py-3 text-left text-sm font-semibold">Service</th>
-                            <th class="px-6 py-3 text-left text-sm font-semibold">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="priorityQueueBody"></tbody>
-                </table>
+                <div class="bg-white rounded-xl shadow overflow-hidden">
+                    <table class="w-full">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-sm font-semibold">Queue #</th>
+                                <th class="px-6 py-3 text-left text-sm font-semibold">Name</th>
+                                <th class="px-6 py-3 text-left text-sm font-semibold">Service</th>
+                                <th class="px-6 py-3 text-left text-sm font-semibold">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="priorityQueueBody">
+                            <tr>
+                                <td colspan="4" class="px-6 py-4 text-center text-gray-500">Loading...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </section>
 
             <!-- Regular Queue -->
             <section class="px-8 py-6">
                 <h2 class="text-xl font-georgia font-semibold mb-4">Regular Queue</h2>
-                <table class="w-full bg-white rounded-xl shadow overflow-hidden">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th class="px-6 py-3 text-left text-sm font-semibold">Queue #</th>
-                            <th class="px-6 py-3 text-left text-sm font-semibold">Name</th>
-                            <th class="px-6 py-3 text-left text-sm font-semibold">Service</th>
-                            <th class="px-6 py-3 text-left text-sm font-semibold">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="regularQueueBody"></tbody>
-                </table>
+                <div class="bg-white rounded-xl shadow overflow-hidden">
+                    <table class="w-full">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-sm font-semibold">Queue #</th>
+                                <th class="px-6 py-3 text-left text-sm font-semibold">Name</th>
+                                <th class="px-6 py-3 text-left text-sm font-semibold">Service</th>
+                                <th class="px-6 py-3 text-left text-sm font-semibold">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="regularQueueBody">
+                            <tr>
+                                <td colspan="4" class="px-6 py-4 text-center text-gray-500">Loading...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </section>
 
         </main>
@@ -417,6 +461,7 @@
 
             } catch (error) {
                 console.error('Failed to fetch queue data:', error);
+                showNotification('Failed to load queue data', 'error');
             }
         }
 

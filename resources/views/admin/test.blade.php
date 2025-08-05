@@ -3,14 +3,13 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Dashboard - Admin Panel</title>
+    <title>Dashboard - Staff Panel</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Alpine.js -->
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- CSRF Token -->
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <style>
         .font-georgia { font-family: Georgia, 'Times New Roman', Times, serif; }
@@ -48,42 +47,54 @@
     <div class="flex min-h-screen">
         <!-- Sidebar -->
         <aside class="w-64 bg-[#1B3C53] text-white flex flex-col fixed h-full">
-            <!-- Top Section -->
             <div class="p-6 border-b border-[#244C66]">
-                <h1 class="text-2xl font-georgia font-bold">
+                <div class="flex items-center">
+                    <h1 class="text-xl font-georgia font-bold ml-4">
                         @if(session('role') === 'main_admin')
                             NCC Admin
                         @else
                             NCC Staff
                         @endif
-                </h1>
+                    </h1>
+                </div>
                 <p class="text-sm text-gray-300 mt-3">
-                    Welcome, {{ session('username') }}<br>
+                    Welcome, {{ session('username') }}
                     <span class="text-xs bg-blue-600 px-2 py-1 rounded ml-2">
                         {{ str_replace('_', ' ', ucwords(session('role'))) }}
                     </span>
                 </p>
             </div>
-            <!-- Navigation -->
             <nav class="flex-1 px-8 py-6 space-y-6">
-                <a href="{{ route('admin.dashboard-main') }}" class="block text-xl font-georgia text-white transition {{ request()->routeIs('admin.dashboard-main') ? 'opacity-100 grayscale-0 underline' : 'opacity-50 grayscale hover:underline' }}">
-                    Dashboard
-                </a>
+                <!-- Dashboard Link - Different for each role -->
+                @if(session('role') === 'main_admin')
+                    <a href="{{ route('admin.dashboard-main') }}" class="block text-xl font-georgia text-white transition {{ request()->routeIs('admin.dashboard-main') ? 'opacity-100 grayscale-0 underline' : 'opacity-50 grayscale hover:underline' }}">
+                        Dashboard
+                    </a>
+                @else
+                    <a href="{{ route('admin.dashboard-staff') }}" class="block text-xl font-georgia text-white transition {{ request()->routeIs('admin.dashboard-staff') ? 'opacity-100 grayscale-0 underline' : 'opacity-50 grayscale hover:underline' }}">
+                        Dashboard
+                    </a>
+                @endif
+
+                <!-- User Management - Main Admin Only -->
                 @if(session('role') === 'main_admin')
                     <a href="{{ route('admin.usermanagement') }}" class="block text-xl font-georgia text-white transition {{ request()->routeIs('admin.usermanagement') ? 'opacity-100 grayscale-0 underline' : 'opacity-50 grayscale hover:underline' }}">
                         User Management
                     </a>
                 @endif
+
+                <!-- Queue Status - Available to Both -->
                 <a href="{{ route('admin.queuestatus') }}" class="block text-xl font-georgia text-white transition {{ request()->routeIs('admin.queuestatus') ? 'opacity-100 grayscale-0 underline' : 'opacity-50 grayscale hover:underline' }}">
                     Queue Status
                 </a>
+
+                <!-- System Logs - Main Admin Only -->
                 @if(session('role') === 'main_admin')
                     <a href="{{ route('admin.systemlogs') }}" class="block text-xl font-georgia text-white transition {{ request()->routeIs('admin.systemlogs') ? 'opacity-100 grayscale-0 underline' : 'opacity-50 grayscale hover:underline' }}">
                         System Logs
                     </a>
                 @endif
             </nav>
-            <!-- Logout -->
             <div class="px-6 py-4 border-t border-[#244C66]">
                 <form action="{{ route('admin.logout') }}" method="GET">
                     <button type="submit" class="w-full bg-[#244C66] hover:bg-[#183345] text-white py-2 rounded font-semibold transition">
@@ -92,7 +103,8 @@
                 </form>
             </div>
         </aside>
-        <!-- Main Content -->
+
+        <!-- Main -->
         <main class="flex-1 flex flex-col bg-[#c0c0ca] ml-64">
             <!-- Header -->
             <header class="px-8 py-4 border-b border-gray-300 bg-[#afafb4] flex justify-between items-center">
@@ -105,7 +117,8 @@
                     <p x-text="currentDateTime" class="text-sm text-gray-500"></p>
                 </div>
             </header>
-            <!-- Dashboard Header -->
+
+            <!-- Dashboard Overview -->
             <section class="px-8 py-4 bg-white border-b border-gray-200">
                 <div class="flex items-center justify-between">
                     <div>
@@ -119,72 +132,32 @@
                     </div>
                 </div>
             </section>
-            <!-- Dashboard Stats Cards -->
+
+            <!-- Stats -->
             <section class="px-8 py-6">
                 <div class="grid grid-cols-3 gap-6">
-                    <!-- Clients Served Today -->
-                    <div class="bg-white p-6 rounded-xl shadow stat-card" :class="{ 'updating': updating }">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <img src="{{ asset('img/served.png') }}" alt="Clients Served" class="w-10 h-10 mb-3" />
-                                <p class="text-sm text-gray-500 mb-1">Clients Today</p>
-                                <h3 class="text-3xl font-bold" style="color: #1B3C53" x-text="stats.clients_served || 0"></h3>
+                    <template x-for="(value, key) in {
+                        'Clients Served Today': ['served.png', stats.clients_served, '#1B3C53'],
+                        'Pending': ['pending.png', stats.pending, '#F59E0B'],
+                        'Cancelled Today': ['cancelled.png', stats.cancelled, '#EF4444'],
+                        'Completed Today': ['complete.png', stats.completed, '#10B981'],
+                        'PWD Clients Today': ['PWD.png', stats.pwd_clients, '#8b5cf6'],
+                        'Senior Clients Today': ['senior.png', stats.senior_clients, '#F97316']
+                    }" :key="key">
+                        <div class="bg-white p-6 rounded-xl shadow stat-card" :class="{ 'updating': updating }">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <img :src="'{{ asset('img') }}/' + value[0]" :alt="key" class="w-10 h-10 mb-3" />
+                                    <p class="text-sm text-gray-500 mb-1" x-text="key"></p>
+                                    <h3 class="text-3xl font-bold" :style="'color: ' + value[2]" x-text="value[1] || 0"></h3>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    <!-- Pending -->
-                    <div class="bg-white p-6 rounded-xl shadow stat-card" :class="{ 'updating': updating }">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <img src="{{ asset('img/pending.png') }}" alt="Pending" class="w-10 h-10 mb-3" />
-                                <p class="text-sm text-gray-500 mb-1">Pending</p>
-                                <h3 class="text-3xl font-bold" style="color: #F59E0B" x-text="stats.pending || 0"></h3>
-                            </div>
-                        </div>
-                    </div>
-                    <!-- Cancelled Today -->
-                    <div class="bg-white p-6 rounded-xl shadow stat-card" :class="{ 'updating': updating }">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <img src="{{ asset('img/cancelled.png') }}" alt="Cancelled" class="w-10 h-10 mb-3" />
-                                <p class="text-sm text-gray-500 mb-1">Cancelled Today</p>
-                                <h3 class="text-3xl font-bold" style="color: #EF4444" x-text="stats.cancelled || 0"></h3>
-                            </div>
-                        </div>
-                    </div>
-                    <!-- Completed Today -->
-                    <div class="bg-white p-6 rounded-xl shadow stat-card" :class="{ 'updating': updating }">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <img src="{{ asset('img/complete.png') }}" alt="Completed" class="w-10 h-10 mb-3" />
-                                <p class="text-sm text-gray-500 mb-1">Completed Today</p>
-                                <h3 class="text-3xl font-bold" style="color: #10B981" x-text="stats.completed || 0"></h3>
-                            </div>
-                        </div>
-                    </div>
-                    <!-- PWD Clients Today -->
-                    <div class="bg-white p-6 rounded-xl shadow stat-card" :class="{ 'updating': updating }">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <img src="{{ asset('img/PWD.png') }}" alt="PWD Clients" class="w-10 h-10 mb-3" />
-                                <p class="text-sm text-gray-500 mb-1">PWD Clients Today</p>
-                                <h3 class="text-3xl font-bold" style="color: #8b5cf6" x-text="stats.pwd_clients || 0"></h3>
-                            </div>
-                        </div>
-                    </div>
-                    <!-- Senior Clients Today -->
-                    <div class="bg-white p-6 rounded-xl shadow stat-card" :class="{ 'updating': updating }">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <img src="{{ asset('img/senior.png') }}" alt="Senior Clients" class="w-10 h-10 mb-3" />
-                                <p class="text-sm text-gray-500 mb-1">Senior Clients Today</p>
-                                <h3 class="text-3xl font-bold" style="color: #F97316" x-text="stats.senior_clients || 0"></h3>
-                            </div>
-                        </div>
-                    </div>
+                    </template>
                 </div>
             </section>
-            <!-- Chart Section -->
+
+            <!-- Chart -->
             <section class="px-8 py-6">
                 <div class="bg-white p-6 rounded-xl shadow">
                     <div class="flex items-center justify-between mb-4">
@@ -196,6 +169,7 @@
             </section>
         </main>
     </div>
+
     <script>
         function dashboardApp() {
             return {
@@ -208,65 +182,46 @@
                     this.updateDateTime();
                     this.initChart();
                     this.startAutoRefresh();
-                    // Update time every second
-                    setInterval(() => {
-                        this.updateDateTime();
-                    }, 1000);
-                    // Make refresh function globally available
-                    window.refreshDashboardStats = () => {
-                        this.refreshStats();
-                    };
+                    setInterval(() => this.updateDateTime(), 1000);
+                    window.refreshDashboardStats = () => this.refreshStats();
                 },
                 updateDateTime() {
                     const now = new Date();
                     this.currentDateTime = now.toLocaleString("en-US", {
-                        weekday: 'long',
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        hour12: true
+                        weekday: 'long', year: 'numeric', month: 'long',
+                        day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true
                     });
                 },
                 async refreshStats() {
+                    this.updating = true;
                     try {
-                        this.updating = true;
-                        const response = await fetch('/admin/dashboard-stats', {
+                        const response = await fetch('/staff/dashboard-stats', {
                             method: 'GET',
                             headers: {
                                 'Accept': 'application/json',
                                 'X-Requested-With': 'XMLHttpRequest'
                             }
                         });
-                        if (!response.ok) {
-                            throw new Error(`HTTP ${response.status}`);
-                        }
+                        if (!response.ok) throw new Error(`HTTP ${response.status}`);
                         const data = await response.json();
                         this.stats = data;
-                        const now = new Date();
-                        this.lastUpdated = 'Updated: ' + now.toLocaleTimeString('en-US', { hour12: true });
-                        console.log('Admin dashboard stats updated:', data);
+                        this.lastUpdated = 'Updated: ' + new Date().toLocaleTimeString('en-US', { hour12: true });
                     } catch (error) {
-                        console.error('Failed to refresh admin dashboard stats:', error);
+                        console.error('Refresh failed:', error);
                     } finally {
-                        setTimeout(() => {
-                            this.updating = false;
-                        }, 500);
+                        setTimeout(() => { this.updating = false; }, 500);
                     }
                 },
                 startAutoRefresh() {
                     this.refreshStats();
-                    setInterval(() => {
-                        this.refreshStats();
-                    }, 10000);
+                    setInterval(() => this.refreshStats(), 10000);
                 },
                 initChart() {
                     const ctx = document.getElementById('clientLineChart').getContext('2d');
                     this.chart = new Chart(ctx, {
                         type: 'line',
                         data: {
-                            labels: ['7 AM', '8 AM', '9 AM', '10 AM', '11 AM', '12 PM', '1 PM', '2 PM', '3 PM', '4 PM', '5 PM'],
+                            labels: ['7 AM','8 AM','9 AM','10 AM','11 AM','12 PM','1 PM','2 PM','3 PM','4 PM','5 PM'],
                             datasets: [{
                                 label: 'Clients Served',
                                 data: @json($hourlyData ?? []),
@@ -284,40 +239,25 @@
                         },
                         options: {
                             responsive: true,
-                            interaction: {
-                                intersect: false,
-                                mode: 'index',
-                            },
+                            interaction: { intersect: false, mode: 'index' },
                             plugins: {
-                                legend: {
-                                    display: true,
-                                    position: 'top',
-                                },
+                                legend: { display: true, position: 'top' },
                                 tooltip: {
                                     backgroundColor: 'rgba(0,0,0,0.8)',
                                     titleColor: 'white',
                                     bodyColor: 'white',
-                                    cornerRadius: 8,
+                                    cornerRadius: 8
                                 }
                             },
                             scales: {
                                 y: {
                                     beginAtZero: true,
-                                    ticks: {
-                                        stepSize: 1,
-                                        color: '#6b7280',
-                                    },
-                                    grid: {
-                                        color: 'rgba(0,0,0,0.1)',
-                                    }
+                                    ticks: { stepSize: 1, color: '#6b7280' },
+                                    grid: { color: 'rgba(0,0,0,0.1)' }
                                 },
                                 x: {
-                                    ticks: {
-                                        color: '#6b7280',
-                                    },
-                                    grid: {
-                                        color: 'rgba(0,0,0,0.05)',
-                                    }
+                                    ticks: { color: '#6b7280' },
+                                    grid: { color: 'rgba(0,0,0,0.05)' }
                                 }
                             }
                         }
