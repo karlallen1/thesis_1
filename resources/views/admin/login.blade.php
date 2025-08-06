@@ -60,14 +60,22 @@
                 @enderror
             </div>
 
+            <!-- Password with toggle button -->
             <div>
                 <label for="password" class="block text-sm font-semibold text-gray-700 mb-2">Password</label>
-                <input type="password" 
-                       id="password" 
-                       name="password" 
-                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1B3C53] focus:border-transparent transition @error('password') border-red-500 @enderror"
-                       placeholder="Enter your password"
-                       required>
+                <div class="relative">
+                    <input type="password" 
+                           id="password" 
+                           name="password" 
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1B3C53] focus:border-transparent transition @error('password') border-red-500 @enderror"
+                           placeholder="Enter your password"
+                           required>
+                    <button type="button"
+                            onclick="togglePassword()"
+                            class="absolute right-3 top-1/2 transform -translate-y-1/2 text-sm text-[#1B3C53] hover:text-[#2C5F7A] focus:outline-none">
+                        Show
+                    </button>
+                </div>
                 @error('password')
                 <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
                 @enderror
@@ -94,5 +102,21 @@
         <div class="absolute -top-1/2 -right-1/2 w-96 h-96 bg-white opacity-5 rounded-full animate-pulse"></div>
         <div class="absolute -bottom-1/2 -left-1/2 w-96 h-96 bg-white opacity-5 rounded-full animate-pulse" style="animation-delay: 2s;"></div>
     </div>
+
+    <!-- Show/Hide Password Script -->
+    <script>
+        function togglePassword() {
+            const passwordInput = document.getElementById('password');
+            const toggleButton = event.target;
+
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                toggleButton.textContent = 'Hide';
+            } else {
+                passwordInput.type = 'password';
+                toggleButton.textContent = 'Show';
+            }
+        }
+    </script>
 </body>
 </html>
