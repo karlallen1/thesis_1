@@ -4,16 +4,12 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Queue Status - Admin Panel</title>
-
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-
     <!-- Chart.js (optional) -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
     <!-- CSRF Token -->
     <meta name="csrf-token" content="{{ csrf_token() }}">
-
     <style>
         .font-georgia { font-family: Georgia, 'Times New Roman', Times, serif; }
         .pulse { animation: pulse 1.5s infinite; }
@@ -23,19 +19,17 @@
     </style>
 </head>
 <body class="bg-gray-100 font-sans">
-
     <div class="flex min-h-screen">
-
         <!-- Sidebar -->
         <aside class="w-64 bg-[#1B3C53] text-white flex flex-col fixed h-full">
             <!-- Top Section -->
             <div class="p-6 border-b border-[#244C66]">
                 <h1 class="text-2xl font-georgia font-bold">
-                        @if(session('role') === 'main_admin')
-                            NCC Admin
-                        @else
-                            NCC Staff
-                        @endif
+                    @if(session('role') === 'main_admin')
+                        NCC Admin
+                    @else
+                        NCC Staff
+                    @endif
                 </h1>
                 <p class="text-sm text-gray-300 mt-3">
                     Welcome, {{ session('username') }}<br>
@@ -44,7 +38,6 @@
                     </span>
                 </p>
             </div>
-
             <!-- Navigation -->
             <nav class="flex-1 px-8 py-6 space-y-6">
                 <!-- Dashboard Link - Different for each role -->
@@ -57,19 +50,16 @@
                         Dashboard
                     </a>
                 @endif
-
                 <!-- User Management - Main Admin Only -->
                 @if(session('role') === 'main_admin')
                     <a href="{{ route('admin.usermanagement') }}" class="block text-xl font-georgia text-white transition {{ request()->routeIs('admin.usermanagement') ? 'opacity-100 grayscale-0 underline' : 'opacity-50 grayscale hover:underline' }}">
                         User Management
                     </a>
                 @endif
-
                 <!-- Queue Status - Available to Both -->
                 <a href="{{ route('admin.queuestatus') }}" class="block text-xl font-georgia text-white transition {{ request()->routeIs('admin.queuestatus') ? 'opacity-100 grayscale-0 underline' : 'opacity-50 grayscale hover:underline' }}">
                     Queue Status
                 </a>
-
                 <!-- System Logs - Main Admin Only -->
                 @if(session('role') === 'main_admin')
                     <a href="{{ route('admin.systemlogs') }}" class="block text-xl font-georgia text-white transition {{ request()->routeIs('admin.systemlogs') ? 'opacity-100 grayscale-0 underline' : 'opacity-50 grayscale hover:underline' }}">
@@ -77,13 +67,9 @@
                     </a>
                 @endif
             </nav>
-
-
         </aside>
-
         <!-- Main Content -->
         <main class="flex-1 flex flex-col bg-[#c0c0ca] ml-64">
-
             <!-- Header -->
             <header class="px-8 py-4 border-b border-gray-300 bg-[#afafb4] flex justify-between items-center">
                 <div class="flex items-center space-x-3">
@@ -101,13 +87,11 @@
                     </div>
                 </div>
             </header>
-
             <!-- Now Serving -->
             <section class="px-8 py-6">
                 <div class="bg-white p-6 rounded-xl shadow">
                     <h2 class="text-xl font-georgia font-semibold mb-4">Now Serving</h2>
                     <div id="nowServing" class="text-gray-500">No one being served</div>
-
                     <!-- Now Serving Details Section -->
                     <div id="nowServingDetailsSection" class="hidden mt-4 p-4 bg-gray-50 rounded-lg border">
                         <h3 class="font-georgia font-semibold mb-3">Client Details</h3>
@@ -131,7 +115,6 @@
                     </div>
                 </div>
             </section>
-
             <!-- Queue Actions -->
             <section class="px-8 py-2 flex flex-wrap gap-3">
                 <button id="nextBtn" onclick="markNextAsServed()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded font-semibold transition">Next Number</button>
@@ -139,14 +122,12 @@
                 <button id="cancelNowBtn" onclick="cancelNowServing()" class="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded font-semibold transition">Cancel Now</button>
                 <button id="requeueNowBtn" onclick="requeueNowServing()" class="bg-yellow-600 hover:bg-yellow-700 text-white px-6 py-2 rounded font-semibold transition">Requeue Now</button>
             </section>
-
             <!-- Queue Counts -->
             <section class="px-8 py-2 text-sm text-gray-600">
                 <span>Priority: <strong id="priorityCount">0</strong></span>
                 <span class="ml-4">Regular: <strong id="regularCount">0</strong></span>
                 <span class="ml-4">Cancelled Today: <strong id="cancelledCount">0</strong></span>
             </section>
-
             <!-- Priority Queue -->
             <section class="px-8 py-6">
                 <h2 class="text-xl font-georgia font-semibold mb-4">Priority Queue</h2>
@@ -168,7 +149,6 @@
                     </table>
                 </div>
             </section>
-
             <!-- Regular Queue -->
             <section class="px-8 py-6">
                 <h2 class="text-xl font-georgia font-semibold mb-4">Regular Queue</h2>
@@ -190,10 +170,8 @@
                     </table>
                 </div>
             </section>
-
         </main>
     </div>
-
     <!-- Confirmation Modal -->
     <div id="confirmationModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
         <div class="bg-white p-6 rounded-xl shadow-xl max-w-md w-full">
@@ -205,7 +183,6 @@
             </div>
         </div>
     </div>
-
     <!-- Notification Toast -->
     <div id="notification" class="hidden fixed top-4 right-4 px-4 py-2 rounded text-white text-sm font-semibold z-50 transition-opacity duration-300">
         Action successful!
@@ -256,15 +233,40 @@
             setTimeout(() => { notif.classList.add('hidden'); notif.style.opacity = '1'; }, 2500);
         }
 
-        // CSRF Token (only if present)
+        // CSRF Token
         const csrfMeta = document.querySelector('meta[name="csrf-token"]');
         const csrfToken = csrfMeta ? csrfMeta.getAttribute('content') : null;
-
         if (!csrfToken) {
             console.warn('CSRF token not found. API requests may fail.');
         }
 
-        // ✅ ENHANCED: Make request with error handling AND dashboard sync
+        // ✅ VOICE ANNOUNCEMENT FUNCTION
+        function announceNext(queueNumber, windowNumber = 1, name = null) {
+            const formattedNumber = queueNumber.toString().padStart(3, '0');
+            let message = name 
+                ? `Now serving, ${name}. Number ${formattedNumber}, please proceed to window ${windowNumber}.`
+                : `Number ${formattedNumber}, please go to window ${windowNumber}.`;
+
+            const utterance = new SpeechSynthesisUtterance(message);
+            utterance.rate = 0.9;
+            utterance.pitch = 1;
+            utterance.volume = 1;
+
+            // Optional: Use a more natural voice
+            const voices = window.speechSynthesis.getVoices();
+            const preferredVoice = voices.find(v => v.name.includes('Google') && v.lang === 'en-US') || voices[0];
+            if (preferredVoice) utterance.voice = preferredVoice;
+
+            window.speechSynthesis.speak(utterance);
+        }
+
+        // Load voices on startup
+        window.speechSynthesis.onvoiceschanged = function () {
+            console.log('Speech voices loaded.');
+        };
+        window.speechSynthesis.getVoices(); // Force preload
+
+        // ✅ ENHANCED: Make request with error handling AND voice announcement
         async function makeRequest(url, options = {}) {
             const config = {
                 method: 'POST',
@@ -275,7 +277,6 @@
                 ...options
             };
 
-            // Add CSRF token only if available
             if (csrfToken) {
                 config.headers['X-CSRF-TOKEN'] = csrfToken;
             }
@@ -288,21 +289,27 @@
                 }
                 const data = await response.json();
 
-                // ✅ Refresh queue data immediately
+                // ✅ Refresh queue data
                 await fetchQueueData();
-                
-                // ✅ IMPORTANT: Sync with dashboard in real-time
+
+                // ✅ Sync with dashboard if available
                 if (typeof window.refreshDashboardStats === 'function') {
-                    console.log('Syncing dashboard stats after queue action...');
                     window.refreshDashboardStats();
                 } else {
-                    // If dashboard function not available, try direct API call
-                    console.log('Dashboard function not found, triggering manual refresh...');
                     try {
                         await fetch('/admin/dashboard-stats');
                     } catch (err) {
-                        console.warn('Dashboard manual refresh failed:', err);
+                        console.warn('Dashboard refresh failed:', err);
                     }
+                }
+
+                // ✅ Trigger voice announcement ONLY on successful "next" call
+                if (url === "/admin/queue/next" && data.success && data.now_serving?.queue_number) {
+                    announceNext(
+                        data.now_serving.queue_number,
+                        1,  // Change to dynamic window number if needed
+                        data.now_serving.full_name  // Optional: include name
+                    );
                 }
 
                 showNotification(data.message || 'Action successful!');
@@ -310,29 +317,29 @@
             } catch (error) {
                 console.error('Request failed:', error);
                 showNotification('Action failed. Please try again.', 'error');
-                await fetchQueueData(); // Refresh anyway
+                await fetchQueueData();
                 throw error;
             }
         }
 
-        // Queue Actions - Enhanced with dashboard sync
+        // Queue Actions
         function markNextAsServed() { 
             console.log('Calling next person...');
             makeRequest("/admin/queue/next"); 
         }
-        
+
         function completeNowServing() { 
             console.log('Completing current service...');
             makeRequest("/admin/queue/complete-now"); 
         }
-        
+
         function cancelNowServing() { 
             showConfirmation(() => {
                 console.log('Cancelling current service...');
                 makeRequest("/admin/queue/cancel-now");
             }); 
         }
-        
+
         function requeueNowServing() { 
             showConfirmation(() => {
                 console.log('Requeueing current service...');
@@ -346,14 +353,14 @@
                 makeRequest(`/admin/queue/${id}/complete`);
             }); 
         }
-        
+
         function cancel(id) { 
             showConfirmation(() => {
                 console.log('Cancelling application ID:', id);
                 makeRequest(`/admin/queue/${id}/cancel`);
             }); 
         }
-        
+
         function requeue(id) { 
             showConfirmation(() => {
                 console.log('Requeueing application ID:', id);
@@ -458,21 +465,20 @@
                 } else if (regularBody) {
                     regularBody.innerHTML = '<tr><td colspan="4" class="px-6 py-4 text-center text-gray-500">No one in regular queue</td></tr>';
                 }
-
             } catch (error) {
                 console.error('Failed to fetch queue data:', error);
                 showNotification('Failed to load queue data', 'error');
             }
         }
 
-        // ✅ Make queue refresh function globally available for dashboard
+        // Make queue refresh globally available
         window.refreshQueueData = fetchQueueData;
 
         // Initial load and auto-refresh
         document.addEventListener('DOMContentLoaded', () => {
             console.log('Queue Status page loaded, starting data fetch...');
             fetchQueueData();
-            setInterval(fetchQueueData, 5000); // Refresh every 5 seconds
+            setInterval(fetchQueueData, 5000);
         });
     </script>
 </body>
