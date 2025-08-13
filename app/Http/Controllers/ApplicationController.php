@@ -10,16 +10,13 @@ use App\Mail\ApplicationSubmittedMail;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
 
-// ✅ Correct Endroid v5+ imports
+
 use Endroid\QrCode\Builder\Builder;
 use Endroid\QrCode\Writer\PngWriter;
 use Endroid\QrCode\Encoding\Encoding;
-// ✅ Fix for v5.x: Import the Enums, not the non-existent classes
 use Endroid\QrCode\ErrorCorrectionLevel;
 use Endroid\QrCode\RoundBlockSizeMode;
-// Remove or comment out the old incorrect imports:
-// use Endroid\QrCode\ErrorCorrectionLevel\ErrorCorrectionLevelHigh;
-// use Endroid\QrCode\RoundBlockSizeMode\RoundBlockSizeModeMargin;
+
 
 class ApplicationController extends Controller
 {
@@ -35,7 +32,7 @@ class ApplicationController extends Controller
                 'email' => [
                     'required',
                     'email',
-                    'regex:/^[\w\.-]+@(gmail\.com|yahoo\.com)$/'
+                    'regex:/^[\w\.-]+@(gmail\.com|yahoo\.com|outlook\.com|icloud\.com)$/'
                 ],
                 'contact' => [
                     'required',
@@ -68,7 +65,9 @@ class ApplicationController extends Controller
 
             $age = Carbon::parse($request->birthdate)->age;
             $qrToken = Str::random(32);
-            $qrExpiresAt = now()->addHours(36);
+            
+            // ✅ UPDATED: Changed from 36 hours to 24 hours
+            $qrExpiresAt = now()->addHours(24);
 
             $application = Application::create([
                 'first_name' => $request->first_name,
@@ -89,9 +88,11 @@ class ApplicationController extends Controller
                 'qr_expires_at' => $qrExpiresAt,
             ]);
 
-            Log::info('Application saved to DB', [
+            Log::info('Application saved to DB with 24-hour QR validity', [
                 'id' => $application->id,
-                'qr_expires_at' => $qrExpiresAt->toDateTimeString()
+                'qr_expires_at' => $qrExpiresAt->toDateTimeString(),
+                'validity_hours' => 24,
+                'created_at' => $application->created_at->toDateTimeString()
             ]);
 
             $qrUrl = route('queue.scan', ['token' => $qrToken]);
@@ -140,8 +141,10 @@ class ApplicationController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Application submitted! Check your email for the QR code.',
-                'application_id' => $application->id
+                'message' => 'Application submitted! Check your email for the QR code (valid for 24 hours).',
+                'application_id' => $application->id,
+                'qr_expires_at' => $qrExpiresAt->toDateTimeString(),
+                'validity_hours' => 24
             ]);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -160,6 +163,69 @@ class ApplicationController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Application submission failed. Please try again.'
+            ], 500);
+        }
+    }
+
+    /**
+     * ✅ NEW: Create test QR with custom expiry - FOR TESTING PURPOSES ONLY
+     */
+    public function createTestQr(Request $request)
+    {
+        // Only allow in local/testing environment
+        if (!app()->environment(['local', 'testing'])) {
+            abort(404);
+        }
+
+        try {
+            $expiryMinutes = $request->get('expiry_minutes', 1); // Default 1 minute for quick testing
+            $qrToken = Str::random(32);
+            $qrExpiresAt = now()->addMinutes($expiryMinutes);
+
+            $application = Application::create([
+                'first_name' => 'Test',
+                'middle_name' => '',
+                'last_name' => 'User',
+                'email' => 'test@gmail.com',
+                'contact' => '+63 912 345 6789',
+                'birthdate' => '1990-01-01',
+                'age' => 34,
+                'is_pwd' => false,
+                'pwd_id' => null,
+                'senior_id' => null,
+                'service_type' => 'Test Service',
+                'status' => 'pending',
+                'is_preapplied' => true,
+                'entered_queue' => false,
+                'qr_token' => $qrToken,
+                'qr_expires_at' => $qrExpiresAt,
+            ]);
+
+            Log::info('Test QR application created', [
+                'id' => $application->id,
+                'token' => $qrToken,
+                'expires_at' => $qrExpiresAt->toDateTimeString(),
+                'expiry_minutes' => $expiryMinutes
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => "Test QR created (expires in {$expiryMinutes} minutes)",
+                'application_id' => $application->id,
+                'token' => $qrToken,
+                'qr_expires_at' => $qrExpiresAt->toDateTimeString(),
+                'scan_url' => route('queue.scan', ['token' => $qrToken]),
+                'test_url' => route('queue.test-expiry', ['token' => $qrToken]),
+                'current_time' => now()->toDateTimeString(),
+                'expires_in_minutes' => $expiryMinutes
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Test QR creation failed', ['error' => $e->getMessage()]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Test QR creation failed: ' . $e->getMessage()
             ], 500);
         }
     }
