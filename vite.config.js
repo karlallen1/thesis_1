@@ -8,4 +8,13 @@ export default defineConfig({
             refresh: true,
         }),
     ],
+    server: {
+        host: '192.168.100.126',
+        port: 5173,
+        cors: true,
+        hmr: {
+            host: '192.168.100.126',
+            port: 5173
+        }
+    }
 });

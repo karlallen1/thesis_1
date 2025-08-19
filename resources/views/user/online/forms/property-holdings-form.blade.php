@@ -40,6 +40,26 @@
       background-size: 20px 20px;
       padding-right: 48px;
     }
+
+    /* Loading spinner animation */
+    .spinner {
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    /* Pulse animation for loading text */
+    .pulse-text {
+      animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
   </style>
 </head>
 <body class="bg-gray-100 font-sans text-gray-800">
@@ -201,13 +221,30 @@
     </div>
   </div>
 
+  <!-- Loading Modal (Updated: Only "Please wait..." + Spinner + Progress Bar) -->
+  <div x-show="isSubmitting" x-transition class="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center">
+    <div class="bg-white p-8 rounded-xl shadow-lg w-full max-w-md text-center">
+      <div class="mb-6">
+        <svg class="spinner w-16 h-16 mx-auto text-blue-600" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+      </div>
+      <p class="text-lg text-gray-700 mb-6">Please wait...</p>
+      <!-- Progress bar only (no text) -->
+      <div class="mt-6 w-full bg-gray-200 rounded-full h-2">
+        <div class="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+             :style="'width: ' + loadingProgress + '%'"></div>
+      </div>
+    </div>
+  </div>
+
   <!-- Thank You Modal -->
   <div x-show="thankYouModal" x-transition class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
     <div class="bg-white p-6 rounded-xl shadow-lg w-full max-w-md text-center">
       <h2 class="text-2xl font-bold text-green-600 mb-4">Thank You!</h2>
       <p class="mb-6">Your application has been submitted successfully.</p>
       <div class="flex justify-center gap-4">
-        <button @click="thankYouModal = false; resetForm()" class="bg-gray-300 hover:bg-gray-400 px-4 py-2 rounded">Submit Again</button>
         <button @click="window.location.href='{{ url('/') }}'" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">Complete</button>
       </div>
     </div>
@@ -252,25 +289,42 @@
         calculatedAge: null,
         maxBirthdate: '',
         minBirthdate: '',
+        
+        // Simplified loading state
+        isSubmitting: false,
+        loadingProgress: 0,
 
         init() {
           const params = new URLSearchParams(window.location.search);
-          this.form.service_type = params.get('service_type') || 'Property Holdings';
+          this.form.service_type = params.get('service_type') || 'Tax Declaration';
 
-          // Calculate date limits for birthdate
           const today = new Date();
-          
-          // Reasonable minimum (100 years ago) - oldest possible birthdate
           const minDate = new Date();
           minDate.setFullYear(today.getFullYear() - 100);
           this.minBirthdate = minDate.toISOString().split('T')[0];
-          
-          // Maximum birthdate (18 years ago from today) - must be at least 18
+
           const maxDate = new Date();
           maxDate.setFullYear(today.getFullYear() - 18);
           maxDate.setMonth(today.getMonth());
           maxDate.setDate(today.getDate());
           this.maxBirthdate = maxDate.toISOString().split('T')[0];
+        },
+
+        startLoadingAnimation() {
+          this.loadingProgress = 0;
+          const progressInterval = setInterval(() => {
+            if (this.loadingProgress < 95) {
+              this.loadingProgress += Math.random() * 15 + 5;
+            }
+            if (!this.isSubmitting) clearInterval(progressInterval);
+          }, 800);
+        },
+
+        completeLoadingAnimation() {
+          this.loadingProgress = 100;
+          setTimeout(() => {
+            this.isSubmitting = false;
+          }, 500);
         },
 
         validateBirthdate() {
@@ -281,7 +335,6 @@
             return;
           }
 
-          // Calculate age
           const birthDate = new Date(this.form.birthdate);
           const today = new Date();
           let age = today.getFullYear() - birthDate.getFullYear();
@@ -293,14 +346,9 @@
 
           this.calculatedAge = age;
           this.form.age = age;
-          
-          // Validate age (must be 18+)
           this.isAgeValid = age >= 18;
-          
-          // Check if senior (60+)
           this.isSenior = age >= 60;
-          
-          // Clear senior_id if not senior anymore
+
           if (!this.isSenior) {
             this.form.senior_id = '';
           }
@@ -367,6 +415,8 @@
 
         async submitForm() {
           this.showingModal = false;
+          this.isSubmitting = true;
+          this.startLoadingAnimation();
 
           try {
             const res = await fetch("{{ route('application.store') }}", {
@@ -379,9 +429,12 @@
             });
 
             const data = await res.json();
+            this.completeLoadingAnimation();
 
             if (res.ok && data.success) {
-              this.thankYouModal = true;
+              setTimeout(() => {
+                this.thankYouModal = true;
+              }, 600);
             } else {
               if (data.errors && data.errors.birthdate) {
                 this.isAgeErrorModal = true;
@@ -394,7 +447,10 @@
               }
             }
           } catch (err) {
-            alert('Submission failed. Please check your internet connection or try again later.');
+            this.completeLoadingAnimation();
+            setTimeout(() => {
+              alert('Submission failed. Please check your internet connection or try again later.');
+            }, 600);
           }
         },
 
@@ -419,6 +475,8 @@
           this.isSenior = false;
           this.calculatedAge = null;
           this.isAgeErrorModal = false;
+          this.isSubmitting = false;
+          this.loadingProgress = 0;
         }
       }
     }

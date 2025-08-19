@@ -159,12 +159,6 @@ Route::middleware(['admin.auth'])->prefix('staff')->group(function () {
     Route::get('/dashboard-stats', [DashboardController::class, 'getStats']);
 });
 
-// ✅ Test route for QR generation
-Route::get('/test-qr', function () {
-    $qr = QrCode::format('png')->size(200)->generate('Testing QR output');
-    Storage::disk('public')->put('qrcodes/test_qr.png', $qr);
-    return 'QR Test saved to storage/app/public/qrcodes/test_qr.png';
-});
 
 // ✅ Public Queue Display (read-only, no admin access needed)
 Route::get('/queue/display', function () {
