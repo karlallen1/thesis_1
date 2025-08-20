@@ -22,7 +22,8 @@
   </style>
 </head>
 <body class="bg-white text-gray-900 relative">
-
+  
+  <!-- new comment -->
   <!-- SCROLL INDICATOR -->
   <div id="scroll-indicator" class="fixed top-0 left-0 h-1 bg-amber-600 z-50 transition-all duration-200 ease-out" style="width: 0%"></div>
 
