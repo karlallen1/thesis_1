@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Admin;
 
-// ✅ Import the correct base Controller from the main namespace
 use App\Http\Controllers\Controller;
 use App\Models\SystemLog;
 use Illuminate\Http\Request;
@@ -13,6 +12,7 @@ class SystemLogsController extends Controller
     {
         $query = SystemLog::query();
 
+        // Apply type filter (but only for account-related logs as per requirements)
         if ($request->filled('type')) {
             $typeMap = [
                 'account' => 'ACCOUNT',
@@ -21,15 +21,37 @@ class SystemLogsController extends Controller
                 'daily_summary' => 'DAILY_SUMMARY'
             ];
             $type = $typeMap[strtolower($request->type)] ?? strtoupper($request->type);
-            $query->where('type', $type);
+            
+            // Only filter by type if it's an account-related type
+            if ($request->type === 'account') {
+                $query->where(function($q) {
+                    $q->whereIn('action', [
+                        'ACCOUNT_CREATE',
+                        'ACCOUNT_DELETE', 
+                        'PASSWORD_CHANGE'
+                    ])
+                    ->orWhere('type', 'ACCOUNT');
+                });
+            } else {
+                $query->where('type', $type);
+            }
         }
 
-        if ($request->filled('start_date')) {
-            $query->whereDate('created_at', '>=', $request->start_date);
+        // Apply single date filter instead of date range
+        if ($request->filled('date')) {
+            $query->whereDate('created_at', $request->date);
         }
 
-        if ($request->filled('end_date')) {
-            $query->whereDate('created_at', '<=', $request->end_date);
+        // Only show account-related logs by default (unless specifically requested)
+        if (!$request->filled('type') || $request->type === 'all') {
+            $query->where(function($q) {
+                $q->whereIn('action', [
+                    'ACCOUNT_CREATE',
+                    'ACCOUNT_DELETE', 
+                    'PASSWORD_CHANGE'
+                ])
+                ->orWhere('type', 'ACCOUNT');
+            });
         }
 
         $logs = $query->latest()->get();

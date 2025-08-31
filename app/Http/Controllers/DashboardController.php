@@ -10,9 +10,10 @@ use App\Models\Application;
 
 class DashboardController extends Controller
 {
+
     public function index()
     {
-        $today = now()->format('Y-m-d');
+        $today = today();
 
         try {
             $stats = $this->getDashboardStats($today);
@@ -35,61 +36,80 @@ class DashboardController extends Controller
         }
     }
 
+    /**
+     * Get dashboard stats with correct logic
+     */
     private function getDashboardStats($today)
     {
-        $stats = [
-            'clients_served' => Application::whereDate('created_at', $today)->count(),
+        return [
+            'clients_served' => Application::where('entered_queue', true)
+                ->whereDate('queue_entered_at', $today)
+                ->count(),
 
-            'pending' => Application::whereDate('created_at', $today)
-                ->where('is_preapplied', true)
+            'pending' => Application::where('is_preapplied', true)
                 ->where('entered_queue', false)
                 ->where('status', 'pending')
                 ->count(),
 
-            'cancelled' => Application::whereDate('created_at', $today)
-                ->where('status', 'cancelled')
+            'cancelled' => Application::where('status', 'cancelled')
+                ->whereNotNull('cancelled_at')
+                ->whereDate('cancelled_at', $today)
                 ->count(),
 
-            'completed' => Application::whereDate('created_at', $today)
-                ->where('status', 'completed')
+            'completed' => Application::where('status', 'completed')
+                ->whereNotNull('completed_at')
+                ->whereDate('completed_at', $today)
                 ->count(),
 
-            'pwd_clients' => Application::whereDate('created_at', $today)
+            'pwd_clients' => Application::where('entered_queue', true)
                 ->where('is_pwd', true)
+                ->whereDate('queue_entered_at', $today)
                 ->count(),
 
-            'senior_clients' => Application::whereDate('created_at', $today)
-                ->where('age', '>=', 60)
+            'senior_clients' => Application::where('entered_queue', true)
+                ->where(function ($q) {
+                    $q->where('age', '>=', 60)
+                      ->orWhereNotNull('senior_id')
+                      ->where('senior_id', '!=', '');
+                })
+                ->whereDate('queue_entered_at', $today)
                 ->count(),
         ];
-
-        Log::info('📊 Dashboard Stats Calculated:', $stats);
-        return $stats;
     }
 
+    /**
+     * Hourly data for chart (based on queue entry)
+     */
     private function getHourlyData($today)
     {
-        $hourlyData = [];
+        $data = [];
         for ($hour = 7; $hour <= 17; $hour++) {
             $start = Carbon::parse($today)->setHour($hour)->startOfHour();
             $end = $start->copy()->endOfHour();
-            $count = Application::whereBetween('created_at', [$start, $end])
-                ->whereIn('status', ['completed', 'serving', 'cancelled'])
+
+            $count = Application::where('entered_queue', true)
+                ->whereBetween('queue_entered_at', [$start, $end])
                 ->count();
-            $hourlyData[] = $count;
+
+            $data[] = $count;
         }
-        return $hourlyData;
+        
+        // FIXED: Remove the duplicate lines that were causing infinite recursion
+        return $data;
     }
 
-    public function getStats()
+    /**
+     * API endpoint for real-time dashboard refresh
+     */
+        public function getStats()
     {
-        $today = now()->format('Y-m-d');
+        $today = today();
 
         try {
-            Cache::forget("dashboard_stats_{$today}");
             $stats = $this->getDashboardStats($today);
+            $hourlyData = $this->getHourlyData($today); // Add this
 
-            return response()->json($stats, 200, [
+            return response()->json(array_merge($stats, ['hourlyData' => $hourlyData]), 200, [
                 'Cache-Control' => 'no-cache, no-store, must-revalidate',
                 'Pragma' => 'no-cache',
                 'Expires' => '0'
@@ -105,6 +125,7 @@ class DashboardController extends Controller
                 'completed' => 0,
                 'pwd_clients' => 0,
                 'senior_clients' => 0,
+                'hourlyData' => array_fill(0, 11, 0)
             ], 500);
         }
     }

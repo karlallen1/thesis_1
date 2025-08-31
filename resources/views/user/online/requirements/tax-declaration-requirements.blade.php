@@ -4,7 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Tax Declaration Requirements</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="icon" href="{{ asset('img/mainlogo.png') }}" type="image/png">
+  @vite(['resources/css/app.css', 'resources/js/app.js'])
   <script src="https://unpkg.com/alpinejs" defer></script>
 </head>
 <body class="m-0 p-0 bg-gray-100">

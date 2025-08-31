@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Application;
 use App\Models\QueueState;
+use App\Models\QueueCounter; // ✅ For atomic queue number
+use Illuminate\Support\Facades\DB; // ✅ For transaction safety
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 
@@ -17,7 +19,6 @@ class QueueController extends Controller
     {
         try {
             Log::info('Starting kiosk application submission', ['email' => $request->email]);
-            Log::info('Kiosk submitted birthdate', ['birthdate' => $request->input('birthdate')]);
 
             $request->validate([
                 'first_name' => 'required|string|max:100',
@@ -25,7 +26,7 @@ class QueueController extends Controller
                 'email' => [
                     'required',
                     'email',
-                    'regex:/^[\w\.-]+@(gmail\.com|yahoo\.com)$/'
+                    'regex:/^[\w\.-]+@(gmail\.com|yahoo\.com|outlook\.com|icloud\.com)$/'
                 ],
                 'contact' => [
                     'required',
@@ -48,13 +49,11 @@ class QueueController extends Controller
                 'senior_id' => 'nullable|string|max:50',
                 'service_type' => 'required|string|max:255'
             ], [
-                'email.regex' => 'Email must be from gmail.com or yahoo.com',
+                'email.regex' => 'Email must be from gmail.com, yahoo.com, outlook.com, or icloud.com',
                 'contact.regex' => 'Contact must be in +63 format with 10 digits',
                 'birthdate.before_or_equal' => 'Sorry, you did not meet age requirements',
                 'birthdate.after' => 'Invalid birthdate'
             ]);
-
-            Log::info('Kiosk validation passed, calculating age and generating queue number');
 
             $age = Carbon::parse($request->birthdate)->age;
             $queueNumber = $this->generateQueueNumber();
@@ -80,19 +79,12 @@ class QueueController extends Controller
                 'qr_expires_at' => null,
             ]);
 
-            Log::info('Kiosk application saved and entered queue', [
-                'id' => $application->id,
-                'queue_number' => $queueNumber,
-                'queue_entered_at' => $application->queue_entered_at->toDateTimeString(),
-                'is_priority' => $application->isPriority(),
-                'priority_type' => $application->getPriorityType()
-            ]);
-
             $this->printQueueTicket($application);
 
+            // ✅ Always return JSON for kiosk
             return response()->json([
                 'success' => true,
-                'message' => 'Welcome to the queue! Your ticket is printing.',
+                'message' => 'Welcome to the queue!',
                 'application_id' => $application->id,
                 'queue_number' => $queueNumber,
                 'is_priority' => $application->isPriority(),
@@ -100,20 +92,16 @@ class QueueController extends Controller
                 'estimated_wait' => $this->calculateEstimatedWait($application)
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
-            Log::warning('Kiosk validation failed', ['errors' => $e->errors()]);
             return response()->json([
                 'success' => false,
                 'message' => 'Validation failed.',
                 'errors' => $e->errors()
             ], 422);
         } catch (\Exception $e) {
-            Log::error('Kiosk application submission failed', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
+            Log::error('Kiosk submission failed', ['error' => $e->getMessage()]);
             return response()->json([
                 'success' => false,
-                'message' => 'Application submission failed. Please try again.'
+                'message' => 'Submission failed. Please try again.'
             ], 500);
         }
     }
@@ -170,7 +158,7 @@ class QueueController extends Controller
                 ]);
             }
 
-            $queueNumber = $this->generateQueueNumber();
+            $queueNumber = $this->generateQueueNumber(); // ✅ Atomic
             $application->update([
                 'entered_queue' => true,
                 'queue_number' => $queueNumber,
@@ -211,11 +199,12 @@ class QueueController extends Controller
     }
 
     /**
-     * ✅ Get current queue status (AJAX) - For Admin Dashboard (queuestatus.blade.php)
+     * ✅ MAIN FIX: Get current queue status with proper priority filtering
      */
     public function index(Request $request)
     {
         try {
+            // Get all pending applications in queue
             $query = Application::where('entered_queue', true)
                 ->where('status', 'pending')
                 ->orderBy('queue_number');
@@ -225,9 +214,32 @@ class QueueController extends Controller
             }
 
             $allApplications = $query->get();
+            
+            // ✅ DEBUG: Log all applications for troubleshooting
+            Log::debug('All applications in queue:', [
+                'count' => $allApplications->count(),
+                'applications' => $allApplications->map(function ($app) {
+                    return [
+                        'id' => $app->id,
+                        'queue_number' => $app->queue_number,
+                        'name' => $app->full_name,
+                        'is_pwd' => $app->is_pwd,
+                        'senior_id' => $app->senior_id,
+                        'age' => $app->age,
+                        'isPriority_method' => $app->isPriority(),
+                        'priority_type' => $app->getPriorityType(),
+                    ];
+                })->toArray()
+            ]);
 
-            $priorityApplications = $allApplications->filter(fn($app) => $app->isPriority());
-            $regularApplications = $allApplications->filter(fn($app) => !$app->isPriority());
+            // ✅ CRITICAL FIX: Use the model's isPriority() method instead of scopes
+            $priorityApplications = $allApplications->filter(function ($app) {
+                return $app->isPriority();
+            });
+
+            $regularApplications = $allApplications->filter(function ($app) {
+                return !$app->isPriority();
+            });
 
             $nowServingApp = QueueState::getNowServing();
 
@@ -236,6 +248,7 @@ class QueueController extends Controller
                 ->whereDate('updated_at', today())
                 ->count();
 
+            // Format priority applications
             $formattedPriority = $priorityApplications->map(function ($app) {
                 return [
                     'id' => $app->id,
@@ -244,9 +257,12 @@ class QueueController extends Controller
                     'service_type' => $app->service_type,
                     'is_pwd' => $app->is_pwd,
                     'senior_id' => $app->senior_id,
+                    'age' => $app->age,
+                    'priority_type' => $app->getPriorityType(),
                 ];
-            });
+            })->values(); // ✅ Reset array keys
 
+            // Format regular applications
             $formattedRegular = $regularApplications->map(function ($app) {
                 return [
                     'id' => $app->id,
@@ -254,7 +270,7 @@ class QueueController extends Controller
                     'name' => $app->full_name,
                     'service_type' => $app->service_type,
                 ];
-            });
+            })->values(); // ✅ Reset array keys
 
             $nowServingData = null;
             if ($nowServingApp) {
@@ -277,14 +293,21 @@ class QueueController extends Controller
                 ];
             }
 
-            return response()->json([
+            $response = [
                 'now_serving' => $nowServingData,
                 'priority' => $formattedPriority,
                 'regular' => $formattedRegular,
                 'cancelled' => $cancelledCount,
-            ]);
+            ];
+
+            return response()->json($response);
+
         } catch (\Exception $e) {
-            Log::error('Queue index failed', ['error' => $e->getMessage()]);
+            Log::error('Queue index failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
             return response()->json([
                 'now_serving' => null,
                 'priority' => [],
@@ -295,7 +318,7 @@ class QueueController extends Controller
     }
 
     /**
-     * ✅ NEW: Public Queue Display Data - For client-facing screen
+     * ✅ Public Queue Display Data - Fixed for priority
      */
     public function displayData(Request $request)
     {
@@ -305,6 +328,7 @@ class QueueController extends Controller
                 ->orderBy('queue_number')
                 ->get();
 
+            // ✅ Use consistent filtering
             $priority = $applications->filter(fn($app) => $app->isPriority())->take(5);
             $regular = $applications->filter(fn($app) => !$app->isPriority())->take(5);
 
@@ -325,8 +349,9 @@ class QueueController extends Controller
                     'name' => $app->full_name,
                     'service_type' => $app->service_type,
                     'is_priority' => true,
+                    'priority_type' => $app->getPriorityType(),
                 ];
-            });
+            })->values();
 
             $nextRegular = $regular->map(function ($app) {
                 return [
@@ -335,7 +360,7 @@ class QueueController extends Controller
                     'service_type' => $app->service_type,
                     'is_priority' => false,
                 ];
-            });
+            })->values();
 
             return response()->json([
                 'now_serving' => $formattedNowServing,
@@ -343,7 +368,9 @@ class QueueController extends Controller
                 'regular' => $nextRegular,
             ]);
         } catch (\Exception $e) {
-            Log::error('Public queue display data failed', ['error' => $e->getMessage()]);
+            Log::error('Public queue display data failed', [
+                'error' => $e->getMessage()
+            ]);
             return response()->json([
                 'now_serving' => null,
                 'priority' => [],
@@ -353,21 +380,24 @@ class QueueController extends Controller
     }
 
     /**
-     * ✅ Call next person in queue
+     * ✅ IMPROVED: Call next person with consistent priority logic
      */
     public function next(Request $request)
     {
         try {
+            // Get all pending applications
             $applications = Application::where('entered_queue', true)
                 ->where('status', 'pending')
                 ->orderBy('queue_number')
                 ->get();
 
+            // ✅ Use consistent filtering logic
             $priorityApps = $applications->filter(fn($app) => $app->isPriority());
             $regularApps = $applications->filter(fn($app) => !$app->isPriority());
 
             $nextApplication = null;
 
+            // Priority first, then regular
             if ($priorityApps->isNotEmpty()) {
                 $nextApplication = $priorityApps->sortBy('queue_number')->first();
             } elseif ($regularApps->isNotEmpty()) {
@@ -381,6 +411,7 @@ class QueueController extends Controller
                 ]);
             }
 
+            // Set as now serving
             QueueState::setNowServing($nextApplication->id);
             $nextApplication->update(['status' => 'serving']);
 
@@ -388,6 +419,7 @@ class QueueController extends Controller
                 'application_id' => $nextApplication->id,
                 'queue_number' => $nextApplication->queue_number,
                 'is_priority' => $nextApplication->isPriority(),
+                'priority_type' => $nextApplication->getPriorityType(),
             ]);
 
             return response()->json([
@@ -405,7 +437,10 @@ class QueueController extends Controller
                 ]
             ]);
         } catch (\Exception $e) {
-            Log::error('Next queue failed', ['error' => $e->getMessage()]);
+            Log::error('Next queue failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to call next person.'
@@ -416,13 +451,13 @@ class QueueController extends Controller
     /**
      * ✅ Complete application by ID
      */
-    public function complete(Request $request, $id)
+        public function complete(Request $request, $id)
     {
         try {
             $application = Application::findOrFail($id);
             $application->update([
                 'status' => 'completed',
-                'completed_at' => now()
+                'completed_at' => now() // ✅ Add this
             ]);
 
             if (QueueState::getNowServing()?->id == $id) {
@@ -453,7 +488,7 @@ class QueueController extends Controller
             $application = Application::findOrFail($id);
             $application->update([
                 'status' => 'cancelled',
-                'cancelled_at' => now()
+                'cancelled_at' => now() // ✅ Add this
             ]);
 
             if (QueueState::getNowServing()?->id == $id) {
@@ -553,15 +588,28 @@ class QueueController extends Controller
     }
 
     /**
-     * ✅ Generate next queue number (daily reset)
+     * ✅ Generate next queue number (atomic & daily reset)
      */
     private function generateQueueNumber()
     {
-        $last = Application::whereDate('created_at', today())
-            ->where('entered_queue', true)
-            ->max('queue_number');
+        return DB::transaction(function () {
+            // Step 1: Get or create today's counter
+            $counter = QueueCounter::firstOrCreate(['date' => today()], ['counter' => 0]);
 
-        return ($last ? (int)$last : 0) + 1;
+            // Step 2: Re-fetch with row lock (this executes the lock)
+            $locked = QueueCounter::where('id', $counter->id)
+                ->lockForUpdate()
+                ->first();
+
+            if (! $locked) {
+                throw new \Exception('Queue counter not found.');
+            }
+
+            // Step 3: Increment safely
+            $locked->increment('counter');
+
+            return $locked->counter;
+        });
     }
 
     /**

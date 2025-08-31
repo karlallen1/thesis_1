@@ -4,16 +4,31 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Login - NCC</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="icon" href="{{ asset('img/mainlogo.png') }}" type="image/png">
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>
         .font-georgia { font-family: Georgia, 'Times New Roman', Times, serif; }
+        .logo {
+            width: 64px;
+            height: 64px;
+            object-fit: contain;
+            margin: 0 auto 1rem;
+            background: white;
+            padding: 8px;
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
     </style>
 </head>
 <body class="bg-gradient-to-br from-[#1B3C53] to-[#2C5F7A] min-h-screen flex items-center justify-center">
-    
+
     <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md">
-        <!-- Header -->
+        <!-- Header with Logo -->
         <div class="text-center mb-8">
+            <!-- Logo -->
+            <img src="{{ asset('img/mainlogo.png') }}" alt="NCC Logo" class="logo" onerror="this.onerror=null; this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2ZmZiIvPjwvc3ZnPg=='">
+            
+            <!-- Title -->
             <h1 class="text-3xl font-georgia font-bold text-[#1B3C53] mb-2">NCC Admin</h1>
             <p class="text-gray-600">Administrator Access Portal</p>
         </div>

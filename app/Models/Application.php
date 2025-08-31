@@ -10,9 +10,6 @@ class Application extends Model
 {
     use HasFactory;
 
-    /**
-     * ✅ Updated fillable fields - includes all new QR and queue fields
-     */
     protected $fillable = [
         'first_name',
         'middle_name', 
@@ -29,189 +26,179 @@ class Application extends Model
         'is_preapplied',
         'entered_queue',
         'queue_number',
-        'qr_token',           // ✅ NEW: For QR code security
-        'qr_expires_at',      // ✅ NEW: QR expiration timestamp
-        'queue_entered_at',   // ✅ NEW: When user entered physical queue
-        'name'                // ✅ Keep your existing 'name' field
+        'qr_token',
+        'qr_expires_at',
+        'queue_entered_at', // ✅ Add this
+        'completed_at',     // ✅ Add this
+        'cancelled_at',     // ✅ Add this
     ];
 
-    /**
-     * ✅ Proper casting for all field types
-     */
     protected $casts = [
         'birthdate' => 'date',
         'is_pwd' => 'boolean',
-        'is_preapplied' => 'boolean', 
+        'is_preapplied' => 'boolean',
         'entered_queue' => 'boolean',
         'age' => 'integer',
         'queue_number' => 'integer',
-        'qr_expires_at' => 'datetime',    // ✅ NEW: Cast QR expiration
-        'queue_entered_at' => 'datetime', // ✅ NEW: Cast queue entry time
+        'qr_expires_at' => 'datetime',
+        'queue_entered_at' => 'datetime',
     ];
 
-    /**
-     * ✅ Helper method for full name - used by QueueController
-     */
-    public function getFullNameAttribute()
+    protected static function boot()
     {
-        $parts = array_filter([
-            $this->first_name,
-            $this->middle_name,
-            $this->last_name
-        ]);
-        
-        return implode(' ', $parts);
+        parent::boot();
+
+        static::creating(function ($application) {
+            if (!$application->queue_number) {
+                $latest = self::whereDate('created_at', today())
+                            ->whereNotNull('queue_number')
+                            ->max('queue_number');
+
+                $application->queue_number = ($latest ? $latest : 0) + 1;
+            }
+        });
     }
 
-    /**
-     * ✅ Alternative method name that your controller might be calling
-     */
+    public function getFullNameAttribute()
+    {
+        return collect([$this->first_name, $this->middle_name, $this->last_name])
+            ->filter()
+            ->implode(' ');
+    }
+
     public function full_name()
     {
         return $this->getFullNameAttribute();
     }
 
     /**
-     * ✅ UPDATED: Priority checker - PWD and those with Senior ID get priority
-     * Only PWDs or Seniors who provide a senior_id are priority.
-     * Age alone (even 60+) does not grant priority.
+     * ✅ FIXED: Check if applicant is priority
+     * Must match the logic used in QueueController filtering
      */
     public function isPriority()
     {
-        // PWD has priority
+        // PWD users are always priority
         if ($this->is_pwd) {
             return true;
         }
-        
-        // Senior Citizen has priority ONLY if they have provided a senior_id
-        // This correctly handles null, empty string, or whitespace
-        if (!empty($this->senior_id) && is_string($this->senior_id) && trim($this->senior_id) !== '') {
+
+        // Users with senior_id (not null and not empty) are priority
+        if (!empty(trim($this->senior_id ?? ''))) {
             return true;
         }
-        
+
+        // Senior citizens (60+) are priority even without senior_id
+        if ($this->age && $this->age >= 60) {
+            return true;
+        }
+
         return false;
     }
 
     /**
-     * ✅ UPDATED: Get priority type for display
+     * ✅ FIXED: Get priority type for display
      */
     public function getPriorityType()
     {
         if ($this->is_pwd) {
             return 'PWD';
         }
-        
-        if (!empty($this->senior_id) && is_string($this->senior_id) && trim($this->senior_id) !== '') {
+
+        if (!empty(trim($this->senior_id ?? ''))) {
             return 'Senior Citizen';
         }
-        
-        return null;
+
+        if ($this->age && $this->age >= 60) {
+            return 'Senior Citizen';
+        }
+
+        return 'Regular';
     }
 
-    /**
-     * ✅ Check if QR code is still valid
-     */
     public function isQrValid()
     {
         return $this->qr_expires_at && $this->qr_expires_at->isFuture();
     }
 
-    /**
-     * ✅ Check if application can enter queue
-     */
     public function canEnterQueue()
     {
-        return $this->is_preapplied && 
-               !$this->entered_queue && 
+        return $this->is_preapplied &&
+               !$this->entered_queue &&
                $this->isQrValid() &&
                $this->status === 'pending';
     }
 
-    /**
-     * ✅ Scope for pending applications
-     */
+    // ✅ SCOPES
     public function scopePending($query)
     {
         return $query->where('status', 'pending');
     }
 
-    /**
-     * ✅ Scope for applications in queue
-     */
     public function scopeInQueue($query)
     {
         return $query->where('entered_queue', true);
     }
 
     /**
-     * ✅ FIXED: Scope for priority applications
-     * Consistent with isPriority() logic:
-     * Applications that are either PWD OR have a non-empty senior_id
+     * ✅ FIXED: Priority scope - must match isPriority() logic exactly
+     * This is the most critical fix!
      */
     public function scopePriority($query)
     {
-        return $query->where(function($q) {
-            $q->where('is_pwd', true)
-              ->orWhere(function($q2) {
-                 // Senior: is_pwd is false AND senior_id is provided (not null, not empty string)
-                 $q2->where('is_pwd', false) // Exclude PWDs as they are handled by the first condition
-                    ->whereNotNull('senior_id')
-                    ->where('senior_id', '!=', '')
-                    ->where('senior_id', '!=', 'NULL'); // Extra safety check
-              });
+        return $query->where(function ($q) {
+            $q->where('is_pwd', true)  // PWD users
+              ->orWhere(function ($subQ) {
+                  // Users with valid senior_id
+                  $subQ->whereNotNull('senior_id')
+                       ->where('senior_id', '!=', '')
+                       ->whereRaw("TRIM(senior_id) != ''");
+              })
+              ->orWhere('age', '>=', 60); // Senior citizens by age
         });
     }
 
     /**
-     * ✅ NEW: Scope for regular applications - NOT priority (opposite of priority)
-     * Applications that are neither PWD nor have a senior_id
+     * ✅ FIXED: Regular scope - must be opposite of priority
      */
     public function scopeRegular($query)
     {
-        return $query->where(function($q) {
-            $q->where('is_pwd', false)
-              ->where(function($subQ) {
+        return $query->where(function ($q) {
+            $q->where('is_pwd', false)  // Not PWD
+              ->where(function ($subQ) {
+                  // No senior_id or empty senior_id
                   $subQ->whereNull('senior_id')
                        ->orWhere('senior_id', '')
-                       ->orWhere('senior_id', 'NULL'); // Match the safety check in scopePriority
+                       ->orWhereRaw("TRIM(senior_id) = ''");
+              })
+              ->where(function ($subQ) {
+                  // Not senior by age (under 60 or null age)
+                  $subQ->whereNull('age')
+                       ->orWhere('age', '<', 60);
               });
         });
     }
 
-    /**
-     * ✅ Get queue position relative to others
-     */
     public function getQueuePosition()
     {
-        if (!$this->queue_number) {
-            return null;
-        }
+        if (!$this->queue_number) return null;
 
-        $position = static::where('entered_queue', true)
-            ->where('queue_number', '<', $this->queue_number)
-            ->count() + 1;
-
-        return $position;
+        return static::where('entered_queue', true)
+                    ->where('queue_number', '<', $this->queue_number)
+                    ->count() + 1;
     }
 
-    /**
-     * ✅ Format contact number for display
-     */
     public function getFormattedContactAttribute()
     {
         return $this->contact;
     }
 
-    /**
-     * ✅ Get service type display name
-     */
     public function getServiceDisplayNameAttribute()
     {
         $serviceNames = [
             'birth_certificate' => 'Birth Certificate',
-            'marriage_certificate' => 'Marriage Certificate', 
+            'marriage_certificate' => 'Marriage Certificate',
             'death_certificate' => 'Death Certificate',
-            'cenomar' => 'CENOMAR'
+            'cenomar' => 'CENOMAR',
         ];
 
         return $serviceNames[$this->service_type] ?? ucwords(str_replace('_', ' ', $this->service_type));

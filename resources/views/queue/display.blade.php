@@ -4,97 +4,111 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Queue Display - North Caloocan City Hall</title>
-    <!-- Tailwind CSS via CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+    
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <!-- Use clean, readable font -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: 'Roboto', sans-serif;
-            background-color: #0f172a; /* dark slate */
+            background-color: #0f172a; /* Dark blue-gray background */
+            color: #e2e8f0; /* Soft light gray for readability */
+        }
+        .text-large {
+            font-size: clamp(3rem, 10vw, 12rem);
+            font-weight: 700;
+        }
+        .card {
+            background-color: #1e293b;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .priority {
+            background-color: #c2410c; /* Warm orange for priority */
             color: white;
+            font-weight: bold;
         }
-        .orbitron {
-            font-family: 'Orbitron', sans-serif;
+        .header {
+            background-color: #1e3a8a;
+            border-radius: 1rem;
+            padding: 1rem 2rem;
         }
-        .pulse {
-            animation: pulse 1.5s infinite;
-        }
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.8; }
-            100% { opacity: 1; }
-        }
-        .fade-in {
-            animation: fadeIn 0.5s ease-out;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .number-card {
-            @apply bg-gray-800 hover:bg-gray-700 rounded-xl p-4 shadow-lg transition-all duration-300 transform hover:scale-105 text-center;
-        }
-        .highlight-number {
-            @apply text-6xl md:text-8xl orbitron text-green-400 font-bold drop-shadow-lg;
+        .time {
+            font-family: 'Roboto', monospace;
+            font-weight: 700;
+            letter-spacing: 1px;
         }
     </style>
     <script>
         // Prevent unwanted interactions
         document.addEventListener('contextmenu', e => e.preventDefault());
         document.addEventListener('keydown', e => {
-            if (['F12', 'F5', 'F11', 'I'].includes(e.key)) e.preventDefault();
+            if (['', 'F5', 'F11', 'I'].includes(e.key)) e.preventDefault();
         });
     </script>
 </head>
-<body class="min-h-screen overflow-hidden text-white">
-    <div class="container mx-auto px-6 py-8">
+<body class="min-h-screen text-white leading-none">
+    <div class="container mx-auto px-6 py-6">
 
-        <!-- Header: "Please monitor..." on left, "Now Serving" number on right -->
-        <header class="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
-            <div class="flex-1">
-                <p class="text-2xl md:text-3xl text-gray-300">
-                    Please monitor your queue number
-                </p>
-                <p class="text-gray-400 text-sm mt-1" id="current-time"></p>
+        <!-- Header -->
+        <header class="header flex justify-between items-center mb-8">
+            <div class="flex items-center space-x-4">
+                <img src="/img/mainlogo.png" alt="City Hall Logo" class="w-16 h-16 object-contain rounded-full bg-white p-1">
+                <div>
+                    <h1 class="text-3xl font-bold">North Caloocan City Hall</h1>
+                    <p class="text-lg text-blue-200">Queue Management System</p>
+                </div>
             </div>
-
-            <!-- Now Serving Number (Large, on the right) -->
-            <div class="text-right mt-4 md:mt-0">
-                <p id="inline-now-serving" class="highlight-number">—</p>
-                <p class="text-gray-400 text-sm">Now Serving</p>
+            <div class="text-right">
+                <p class="text-xl" id="current-date"></p>
+                <p class="text-2xl time" id="current-time"></p>
             </div>
         </header>
 
-        <!-- Full Now Serving Section (with name) -->
-        <section class="bg-gradient-to-r from-blue-600 to-blue-800 rounded-3xl shadow-2xl p-8 mb-10">
-            <h2 class="text-3xl font-semibold text-white text-center mb-4">Currently Being Served</h2>
-            <div id="now-serving" class="text-center">
-                <p class="text-7xl orbitron pulse text-white">—</p>
-                <p class="text-2xl mt-2 text-white">No one being served</p>
-            </div>
-        </section>
+        <!-- Main Display -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 h-[calc(100vh-200px)]">
 
-        <!-- Next in Queue -->
-        <section class="bg-gray-800 rounded-2xl shadow-xl p-6">
-            <h2 class="text-2xl font-semibold text-white text-center mb-6">Next in Queue</h2>
-            <div id="next-queue" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                <p class="text-gray-400 text-lg col-span-full text-center py-8">Loading next applicants...</p>
+            <!-- Next in Queue -->
+            <div class="lg:col-span-1">
+                <div class="card">
+                    <h2 class="text-2xl font-bold mb-6 text-blue-300 border-b pb-2">Next in Queue</h2>
+                    <div id="next-queue" class="space-y-4 max-h-[500px] overflow-y-auto">
+                        <div class="text-center py-10 text-gray-400">
+                            <p>Loading next applicants...</p>
+                        </div>
+                    </div>
+                </div>
             </div>
-        </section>
+
+            <!-- Now Serving (Large Display) -->
+            <div class="lg:col-span-2 flex flex-col">
+                <div class="card flex-1 flex flex-col justify-center items-center text-center p-10">
+                    <div class="text-blue-400 text-2xl font-semibold mb-4">NOW SERVING</div>
+                    <div id="now-serving-display">
+                        <div class="text-large text-white mb-6">—</div>
+                        <div class="text-4xl font-medium text-gray-300">No one being served</div>
+                        <div class="text-2xl text-gray-400 mt-2">Please wait for your turn</div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
-        // Update time
-        function updateTime() {
+        // Update date and time
+        function updateDateTime() {
             const now = new Date();
-            document.getElementById('current-time').textContent = now.toLocaleString();
-        }
-        setInterval(updateTime, 1000);
-        updateTime();
+            const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            const timeOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true };
 
-        const nowServingEl = document.getElementById('now-serving');
-        const inlineNowServingEl = document.getElementById('inline-now-serving');
+            document.getElementById('current-date').textContent = now.toLocaleDateString('en-US', dateOptions);
+            document.getElementById('current-time').textContent = now.toLocaleTimeString('en-US', timeOptions);
+        }
+        setInterval(updateDateTime, 1000);
+        updateDateTime();
+
+        const nowServingDisplay = document.getElementById('now-serving-display');
         const nextQueueEl = document.getElementById('next-queue');
 
         async function fetchQueueData() {
@@ -108,42 +122,52 @@
                     const queueNum = data.now_serving.queue_number;
                     const name = data.now_serving.full_name;
 
-                    nowServingEl.innerHTML = `
-                        <p class="text-7xl orbitron pulse text-white">${queueNum}</p>
-                        <p class="text-2xl mt-2 text-white">${name}</p>
+                    nowServingDisplay.innerHTML = `
+                        <div class="text-large text-white mb-6">${queueNum}</div>
+                        <div class="text-4xl font-medium text-white">${name}</div>
+                        <div class="text-2xl text-green-400 mt-2">Please proceed to the Window # 1</div>
                     `;
-                    inlineNowServingEl.textContent = queueNum;
                 } else {
-                    nowServingEl.innerHTML = `
-                        <p class="text-7xl orbitron pulse text-white">—</p>
-                        <p class="text-2xl mt-2 text-white">No one being served</p>
+                    nowServingDisplay.innerHTML = `
+                        <div class="text-large text-gray-500 mb-6">—</div>
+                        <div class="text-4xl font-medium text-gray-300">No one being served</div>
+                        <div class="text-2xl text-gray-400 mt-2">Please wait for your turn</div>
                     `;
-                    inlineNowServingEl.textContent = '—';
                 }
 
-                // Next in Queue (priorities first)
-                const nextList = [...(data.priority || []), ...(data.regular || [])].slice(0, 6);
+                // Update Next Queue
+                const nextList = [...(data.priority || []), ...(data.regular || [])].slice(0, 8);
                 if (nextList.length > 0) {
-                    nextQueueEl.innerHTML = nextList.map(app => `
-                        <div class="number-card fade-in">
-                            <p class="text-5xl orbitron text-blue-400">${app.queue_number}</p>
-                            <p class="text-sm font-medium text-white">${app.name}</p>
-                        </div>
-                    `).join('');
+                    nextQueueEl.innerHTML = nextList.map((app, index) => {
+                        const isPriority = data.priority && data.priority.includes(app);
+                        const badge = isPriority ? '<span class="priority px-2 py-1 rounded text-xs">PRIORITY</span>' : '';
+                        return `
+                            <div class="bg-gray-700 rounded-lg p-3 text-center relative">
+                                ${badge}
+                                <div class="text-2xl font-bold text-white">${app.queue_number}</div>
+                            </div>
+                        `;
+                    }).join('');
                 } else {
                     nextQueueEl.innerHTML = `
-                        <p class="text-gray-400 text-lg col-span-full text-center py-8">No upcoming queues</p>
+                        <div class="text-center py-10 text-gray-400">
+                            <p>No upcoming queues</p>
+                            <p class="text-sm mt-1">All caught up for now!</p>
+                        </div>
                     `;
                 }
             } catch (error) {
                 console.error('Fetch error:', error);
                 nextQueueEl.innerHTML = `
-                    <p class="text-red-400 text-lg col-span-full text-center py-8">Connection failed. Retrying...</p>
+                    <div class="text-center py-10 text-red-400">
+                        <p>Connection failed</p>
+                        <p class="text-sm mt-1">Retrying...</p>
+                    </div>
                 `;
             }
         }
 
-        // Load and refresh
+        // Load and refresh data
         document.addEventListener('DOMContentLoaded', () => {
             fetchQueueData();
             setInterval(fetchQueueData, 3000);

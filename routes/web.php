@@ -79,49 +79,52 @@ Route::middleware(['web'])->group(function () {
 });
 
 // ======================
-// ADMIN ROUTES - PUBLIC (Login only)
+// ADMIN ROUTES - NEW FLOW
 // ======================
-Route::get('/admin/login', [AdminAuthController::class, 'showLoginForm'])->name('admin.login');
-Route::post('/admin/login', [AdminAuthController::class, 'login']);
 
-// Logout (can be accessed by authenticated users)
-Route::get('/admin/logout', function () {
-    session()->flush();
-    return redirect('/admin/login')->with('success', 'Logged out successfully');
-})->middleware('admin.auth')->name('admin.logout');
+// 🌐 Public Admin Tab (Landing Page)
+Route::get('/admin', function () {
+    return view('admin.admin-tab');
+})->name('admin.home');
+
+// 🔐 Admin Login & Auth
+Route::prefix('admin')->group(function () {
+    Route::get('/login', [AdminAuthController::class, 'showLoginForm'])->name('admin.login');
+    Route::post('/login', [AdminAuthController::class, 'login']);
+
+    // POST logout only
+    Route::post('/logout', [AdminAuthController::class, 'logout'])
+        ->middleware('admin.auth')
+        ->name('admin.logout');
+});
 
 // ======================
-// PROTECTED ADMIN ROUTES - Require Authentication
+// PROTECTED ADMIN ROUTES
 // ======================
 Route::middleware(['admin.auth'])->prefix('admin')->name('admin.')->group(function () {
-    
-    // 🧭 SHARED ROUTES (Both main_admin and staff can access)
-    // Dashboard routing - redirect to appropriate dashboard based on role
+
+    // Dashboard redirect
     Route::get('/dashboard', function () {
         $role = session('role');
-        if ($role === 'main_admin') {
+        if ($role === 'admin') {
             return redirect()->route('admin.dashboard-main');
         } elseif ($role === 'staff') {
-            return redirect()->route('admin.dashboard-main');
+            return redirect()->route('admin.dashboard-staff');
         }
-        return redirect('/admin/login');
+        return redirect()->route('admin.home');
     })->name('dashboard');
 
-    // Main Admin Dashboard
+    // Dashboards
     Route::get('/dashboard-main', [DashboardController::class, 'index'])->name('dashboard-main');
-
-    // ✅ QUICK FIX: Staff Dashboard - Use same controller method
     Route::get('/dashboard-staff', [DashboardController::class, 'index'])->name('dashboard-staff');
-
-    // Dashboard stats API (shared by both dashboards)
     Route::get('/dashboard-stats', [DashboardController::class, 'getStats'])->name('dashboard.stats');
 
-    // Queue Status (accessible by both main_admin and staff)
-    Route::get('/queuestatus', function() {
+    // Queue Status
+    Route::get('/queuestatus', function () {
         return view('admin.queuestatus');
     })->name('queuestatus');
 
-    // 📊 Queue Management APIs (shared by both roles)
+    // Queue APIs
     Route::get('/queue', [QueueController::class, 'index'])->name('queue.index');
     Route::post('/queue/next', [QueueController::class, 'next'])->name('queue.next');
     Route::post('/queue/{id}/complete', [QueueController::class, 'complete']);
@@ -131,39 +134,36 @@ Route::middleware(['admin.auth'])->prefix('admin')->name('admin.')->group(functi
     Route::post('/queue/cancel-now', [QueueController::class, 'cancelNow']);
     Route::post('/queue/requeue-now', [QueueController::class, 'requeueNow']);
 
-    // 🔒 MAIN ADMIN ONLY ROUTES
-    Route::middleware(['admin.auth:main_admin'])->group(function () {
-        
-        // User Management
-        Route::get('/usermanagement', function() {
+    // 🔒 ADMIN ONLY (formerly main_admin)
+    Route::middleware(['admin.auth:admin'])->group(function () {
+        Route::get('/usermanagement', function () {
             return view('admin.usermanagement');
         })->name('usermanagement');
-        
+
         Route::get('/users', [AdminUserController::class, 'index'])->name('users.index');
         Route::post('/users', [AdminUserController::class, 'store'])->name('users.store');
         Route::put('/users/{id}/password', [AdminUserController::class, 'updatePassword'])->name('users.updatePassword');
         Route::delete('/users/{id}', [AdminUserController::class, 'destroy'])->name('users.destroy');
 
-        // System Logs
-        Route::get('/systemlogs', function() {
+        Route::get('/systemlogs', function () {
             return view('admin.systemlogs');
         })->name('systemlogs');
-        
+
         Route::get('/api/system-logs', [SystemLogsController::class, 'getLogs'])->name('systemlogs.api');
     });
 });
 
-// 🔧 Staff-specific API endpoints (if needed)
+// 🔧 Staff-specific API (if needed)
 Route::middleware(['admin.auth'])->prefix('staff')->group(function () {
-    // Staff dashboard stats (separate endpoint if needed)
     Route::get('/dashboard-stats', [DashboardController::class, 'getStats']);
 });
 
-
-// ✅ Public Queue Display (read-only, no admin access needed)
+// ✅ Public Queue Display
 Route::get('/queue/display', function () {
     return view('queue.display');
 })->name('queue.display');
 
-// ✅ API endpoint for public display (no auth, read-only)
-Route::get('/queue/data', [App\Http\Controllers\QueueController::class, 'displayData'])->name('queue.display-data');
+Route::get('/queue/data', [QueueController::class, 'displayData'])->name('queue.display-data');
+
+
+
