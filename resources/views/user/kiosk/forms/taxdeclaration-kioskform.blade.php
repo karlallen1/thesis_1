@@ -472,6 +472,14 @@
   <div class="container">
     <h1>Tax Declaration Application</h1>
 
+    <!-- Back Button -->
+    <button 
+      onclick="window.history.back()" 
+      class="absolute top-12 left-12 z-20 bg-amber-600 hover:bg-amber-700 text-white font-bold px-6 py-3 rounded-lg shadow-lg transition-all duration-200"
+    >
+      ← BACK
+    </button>
+
     <div class="language-select">
       <label for="language">Language:</label>
       <select id="language" x-model="selectedLanguage" @change="changeLanguage">
@@ -682,6 +690,7 @@
         thankYouModal: false,
         showQueueModal: false,
         queueNumber: null,
+        applicationId: null, // ✅ Store ID for printing
         isPriority: false,
         priorityType: '',
 
@@ -763,7 +772,6 @@
           this.initializeCalendar();
           this.updateCalendar();
 
-          // Start 3-minute idle timer
           this.startIdleTimer();
         },
 
@@ -779,11 +787,10 @@
           clearTimeout(self.idleTimer);
           self.idleTimer = setTimeout(() => {
             self.returnToServices();
-          }, 3 * 60 * 1000); // 3 minutes
+          }, 3 * 60 * 1000);
         },
 
         returnToServices() {
-          // Clean up listeners
           ['mousemove', 'keydown', 'click', 'input'].forEach(event =>
             document.removeEventListener(event, this.resetIdleTimer)
           );
@@ -901,6 +908,7 @@
           this.isSenior = false;
           this.calculatedAge = null;
           this.queueNumber = null;
+          this.applicationId = null;
           this.isPriority = false;
           this.priorityType = '';
         },
@@ -927,14 +935,14 @@
               headers: {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
               },
               body: JSON.stringify(this.form),
             });
 
             const contentType = res.headers.get('content-type');
             if (!contentType || !contentType.includes('application/json')) {
-              alert('Server error: Check URL or contact admin');
+              alert('Server error: Invalid response from server.');
               return;
             }
 
@@ -944,17 +952,32 @@
               this.queueNumber = data.queue_number;
               this.isPriority = data.is_priority;
               this.priorityType = data.priority_type || 'Regular';
+              this.applicationId = data.application_id;
               this.showQueueModal = true;
-              this.resetIdleTimer(); // Start timer after success
+
+              // ✅ Auto-print ticket
+              this.printQueueTicket();
+
+              this.resetIdleTimer();
             } else {
               alert(data.message || 'Submission failed');
             }
           } catch (err) {
             console.error('Submission error:', err);
-            alert('Failed to connect. Check internet or try again.');
+            alert('Failed to connect. Please try again.');
           }
+        },
+
+        // ✅ Auto-print ticket after submission
+        printQueueTicket() {
+          if (!this.applicationId) return;
+
+          setTimeout(() => {
+            const printUrl = `/user/online/queue-ticket/${this.applicationId}`;
+            const printWindow = window.open(printUrl, 'PrintTicket', 'width=350,height=400');
+          }, 800);
         }
-      }
+      };
     }
   </script>
 </body>

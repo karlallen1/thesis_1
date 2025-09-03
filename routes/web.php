@@ -13,7 +13,7 @@ use App\Http\Controllers\Admin\SystemLogsController;
 // ======================
 Route::middleware(['web'])->group(function () {
     // Landing and Services
-    Route::get('/', fn() => view('user.online.landing'));
+    Route::get('/', fn() => view('user.online.landing'))->name('user.landing');
     Route::get('/services', fn() => view('user.online.services'))->name('user.services');
 
     // Requirements pages
@@ -31,8 +31,18 @@ Route::middleware(['web'])->group(function () {
     // Form submission
     Route::post('/application/store', [ApplicationController::class, 'store'])->name('application.store');
 
-    // QR Scan Entry
+    // QR Scan Entry – Process token
     Route::get('/queue/scan', [QueueController::class, 'enterViaQR'])->name('queue.scan');
+
+    // QR Scanner Input Page (for hardware scanners)
+    Route::get('/scan-qr', function () {
+        return view('user.online.scan-qr');
+    })->name('scan.qr');
+
+    // ADD THESE NEW ROUTES FOR THE MISSING FUNCTIONALITY
+    // API endpoint for QR scanner (returns JSON)
+Route::post('/api/scan-qr', [QueueController::class, 'handleScanAjax'])->name('api.scan.qr');
+
 });
 
 // ======================
@@ -62,7 +72,7 @@ Route::middleware(['web'])->group(function () {
     Route::get('/kiosk/forms/property-holdings', function () {
         $serviceType = request('service_type', 'Property Holdings');
         return view('user.kiosk.forms.property-holdings-kioskform', compact('serviceType'));
-    })->name('kiosk.form.property-holdings-form');
+    })->name('kiosk.form.property-holdings');
 
     Route::get('/kiosk/forms/non-property-holdings', function () {
         $serviceType = request('service_type', 'Non-Property Holdings');
@@ -163,7 +173,30 @@ Route::get('/queue/display', function () {
     return view('queue.display');
 })->name('queue.display');
 
+Route::get('/queue/expired', function () {
+    return view('queue.expired');
+})->name('queue.expired');
+
 Route::get('/queue/data', [QueueController::class, 'displayData'])->name('queue.display-data');
 
+// REMOVED THE OLD DUPLICATE ROUTE - NOW HANDLED IN QueueController
+// Route::get('/ticket/print/{id}', function ($id) { ... })
 
+// Show welcome screen after QR scan
+Route::get('/user/online/welcome/{id}', [QueueController::class, 'showWelcome'])->name('user.online.welcome');
 
+// Print ticket (for auto-print)
+Route::get('/user/online/queue-ticket/{id}', [QueueController::class, 'printTicket'])->name('user.online.queue-ticket');
+
+// Remove any duplicate /ticket/print routes
+
+Route::get('/ticket/print/{id}', function ($id) {
+    try {
+        $application = \App\Models\Application::findOrFail($id);
+        return view('user.online.queue-ticket', compact('application'));
+    } catch (\Exception $e) {
+        return response('Application not found.', 404);
+    }
+})->name('ticket.print');
+
+Route::get('/user/online/queue-ticket/{id}', [QueueController::class, 'printTicket'])->name('user.online.queue-ticket');

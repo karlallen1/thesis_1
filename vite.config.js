@@ -11,6 +11,14 @@ export default defineConfig({
             refresh: true,
         }),
     ],
+    server: {
+        host: '0.0.0.0', // Allow external connections
+        port: 5173,
+        cors: true, // Enable CORS
+        hmr: {
+            host: '192.168.100.126' // Replace with your actual network IP
+        }
+    },
     optimizeDeps: {
         include: ['chart.js']
     },

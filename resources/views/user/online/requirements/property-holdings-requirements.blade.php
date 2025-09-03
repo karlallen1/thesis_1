@@ -92,15 +92,15 @@
 
       return {
         requirements: [
-          'Barangay Clearance',
-          'Cedula (Community Tax Certificate)',
+          'Letter Request',
+          'Proof of Ownership (TCT/OCT/CCT)',
           'Valid ID (Government-issued)',
-          'Tax Declaration',
-          'Proof of Ownership',
-          'TCT / Deed of Sale',
-          'Certificate of Occupancy',
-          'Latest Tax Receipt',
-          'Lhat',
+          'Deed of Conveyance',
+          'Certificate Authorizing Registration (CAR)',
+          'Latest Real Property Tax Receipt/Tax Clearance (Amilyar/Tax Clearance)',
+          'Transfer Tax Receipt',
+          'Pictures of the Property/Structure',
+          'Transfer Fee Receipt',
         ],
         checked: [],
         showReminder: false,

@@ -92,14 +92,13 @@
 
      return {
   requirements: [
-    'Barangay Clearance <span class="opacity-70">(MUST BE VALID FOR SIX MONTHS FROM DATE ISSUED)</span>',
-    'Cedula <span class="opacity-70">(COMMUNITY TAX CERTIFICATE, ONE YEAR VALID FROM DATE ISSUED)</span>',
-    'Valid ID <span class="opacity-70">(GOVERNMENT-ISSUED, NOT EXPIRED)</span>',
-    'Tax Declaration',
-    'Proof of Ownership', 
-    'TCT / Deed of Sale',
-    'Certificate of Occupancy',
-    'Latest Tax Receipt <span class="opacity-70">(FIVE (5) YEARS FROM THE DATE OF THE ATP)</span>',
+    'Request for Issuance of Updated Tax Declaration form',
+    'Title (Certified True Xerox Copy)',
+    'Updated Real Property Tax Payment (Amilyar) ',
+    'Latest Tax Declaration (TD/OHA)', 
+    'Deed of Sale/ Extra Judicial Settlement/ Partition Agreement',
+    'Transfer Tax Receipt',
+    'Certificate Authorizing Registration (CAR) from BIR (Bureau of Internal Revenue)',
   ],
         checked: [],
         showReminder: false,

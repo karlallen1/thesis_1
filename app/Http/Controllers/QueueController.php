@@ -5,15 +5,15 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Application;
 use App\Models\QueueState;
-use App\Models\QueueCounter; // ✅ For atomic queue number
-use Illuminate\Support\Facades\DB; // ✅ For transaction safety
+use App\Models\QueueCounter;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 
 class QueueController extends Controller
 {
     /**
-     * ✅ KIOSK STORE METHOD - Direct queue entry without QR/Email
+     * KIOSK STORE METHOD - Direct queue entry without QR/Email
      */
     public function store(Request $request)
     {
@@ -81,7 +81,6 @@ class QueueController extends Controller
 
             $this->printQueueTicket($application);
 
-            // ✅ Always return JSON for kiosk
             return response()->json([
                 'success' => true,
                 'message' => 'Welcome to the queue!',
@@ -107,104 +106,114 @@ class QueueController extends Controller
     }
 
     /**
-     * ✅ QR SCAN ENTRY - For pre-registered users
+     * QR SCAN ENTRY - For pre-registered users (handles web redirect)
      */
     public function enterViaQR(Request $request)
     {
         try {
             $token = $request->get('token');
+
+            Log::info('QR Scan Entry Attempt', [
+                'token' => $token,
+                'full_url' => $request->fullUrl(),
+                'all_params' => $request->all()
+            ]);
+
             if (!$token) {
-                Log::warning('QR scan failed - no token provided');
-                return view('queue.scan', [
-                    'success' => false,
-                    'message' => 'Invalid QR code - no token provided.',
-                    'success_message' => 'Invalid QR code - no token provided.',
-                    'application' => null
-                ]);
+                Log::warning('No token provided');
+                return redirect()->route('scan.qr')->with('error', 'Invalid QR code - no token provided.');
             }
 
             $application = Application::where('qr_token', $token)->first();
             if (!$application) {
-                Log::warning('QR scan failed - application not found', ['token' => $token]);
-                return view('queue.scan', [
-                    'success' => false,
-                    'message' => 'Invalid QR code - application not found.',
-                    'success_message' => 'Invalid QR code - application not found.',
-                    'application' => null
-                ]);
+                Log::warning('Application not found for token', ['token' => $token]);
+                return redirect()->route('scan.qr')->with('error', 'Invalid QR code - application not found.');
             }
 
             if ($application->entered_queue) {
-                Log::info('QR scan - already in queue', ['application_id' => $application->id]);
-                return view('queue.scan', [
-                    'success' => false,
-                    'message' => 'You are already in the queue.',
-                    'success_message' => 'You are already in the queue.',
-                    'application' => $application,
-                    'queue_number' => $application->queue_number
-                ]);
+                Log::info('Application already in queue');
+                return redirect()->route('scan.qr')->with('error', 'You are already in the queue.');
             }
 
             if (!$application->isQrValid()) {
-                Log::warning('QR scan failed - expired', [
-                    'application_id' => $application->id,
-                    'expires_at' => $application->qr_expires_at
-                ]);
-                return view('queue.scan', [
-                    'success' => false,
-                    'message' => 'QR code has expired. Please submit a new application.',
-                    'success_message' => 'QR code has expired. Please submit a new application.',
-                    'application' => $application
-                ]);
+                Log::info('QR code expired');
+                return redirect()->route('scan.qr')->with('error', 'QR code has expired. Please apply again.');
             }
 
-            $queueNumber = $this->generateQueueNumber(); // ✅ Atomic
+            // Assign queue number
+            $queueNumber = $this->generateQueueNumber();
             $application->update([
                 'entered_queue' => true,
                 'queue_number' => $queueNumber,
                 'queue_entered_at' => now()
             ]);
 
-            Log::info('QR scan successful - entered queue', [
-                'application_id' => $application->id,
+            Log::info('Application successfully entered queue', [
+                'id' => $application->id,
                 'queue_number' => $queueNumber
             ]);
 
-            $this->printQueueTicket($application);
-
-            return view('queue.scan', [
-                'success' => true,
-                'message' => 'Successfully entered the queue! Your ticket is printing.',
-                'success_message' => 'Successfully entered the queue! Your ticket is printing.',
-                'application' => $application,
-                'queue_number' => $queueNumber,
-                'applicant_name' => $application->full_name,
-                'service_type' => $application->service_type,
-                'is_priority' => $application->isPriority(),
-                'priority_type' => $application->getPriorityType(),
-                'estimated_wait' => $this->calculateEstimatedWait($application)
-            ]);
+            // Redirect to welcome screen
+            return redirect()->route('user.online.welcome', $application->id);
         } catch (\Exception $e) {
-            Log::error('QR scan entry failed', [
+            Log::error('QR scan failed', [
                 'error' => $e->getMessage(),
-                'token' => $token
+                'trace' => $e->getTraceAsString()
             ]);
-            return view('queue.scan', [
-                'success' => false,
-                'message' => 'QR scan failed. Please try again.',
-                'success_message' => 'QR scan failed. Please try again.',
-                'application' => null
-            ]);
+            return redirect()->route('scan.qr')->with('error', 'Scan failed. Please try again.');
         }
     }
 
     /**
-     * ✅ MAIN FIX: Get current queue status with proper priority filtering
+     * Show welcome screen after QR scan
+     */
+    public function showWelcome($id)
+    {
+        try {
+            $application = Application::findOrFail($id);
+
+            if (!$application->entered_queue) {
+                return redirect()->route('scan.qr')->with('error', 'Application not in queue.');
+            }
+
+            return view('user.online.welcome', compact('application'));
+        } catch (\Exception $e) {
+            Log::error('Welcome page error: ' . $e->getMessage());
+            return redirect()->route('scan.qr')->with('error', 'Application not found.');
+        }
+    }
+
+    /**
+     * Print ticket (used by iframe for auto-print)
+     */
+    public function printTicket($id)
+{
+    try {
+        // 🔥 Clean any previous output (critical for kiosk printing)
+        if (ob_get_level()) {
+            ob_clean();
+        }
+
+        $application = Application::findOrFail($id);
+
+        return view('user.online.queue-ticket', compact('application'));
+    } catch (\Exception $e) {
+        // 🔥 Clean again before error response
+        if (ob_get_level()) {
+            ob_clean();
+        }
+
+        Log::error('Ticket print error: ' . $e->getMessage());
+        return response('Application not found.', 404);
+    }
+}
+
+    /**
+     * Get current queue status (for admin dashboard)
      */
     public function index(Request $request)
     {
         try {
-            // Get all pending applications in queue
             $query = Application::where('entered_queue', true)
                 ->where('status', 'pending')
                 ->orderBy('queue_number');
@@ -214,32 +223,23 @@ class QueueController extends Controller
             }
 
             $allApplications = $query->get();
-            
-            // ✅ DEBUG: Log all applications for troubleshooting
+
             Log::debug('All applications in queue:', [
                 'count' => $allApplications->count(),
-                'applications' => $allApplications->map(function ($app) {
-                    return [
-                        'id' => $app->id,
-                        'queue_number' => $app->queue_number,
-                        'name' => $app->full_name,
-                        'is_pwd' => $app->is_pwd,
-                        'senior_id' => $app->senior_id,
-                        'age' => $app->age,
-                        'isPriority_method' => $app->isPriority(),
-                        'priority_type' => $app->getPriorityType(),
-                    ];
-                })->toArray()
+                'applications' => $allApplications->map(fn($app) => [
+                    'id' => $app->id,
+                    'queue_number' => $app->queue_number,
+                    'name' => $app->full_name,
+                    'is_pwd' => $app->is_pwd,
+                    'senior_id' => $app->senior_id,
+                    'age' => $app->age,
+                    'isPriority' => $app->isPriority(),
+                    'priority_type' => $app->getPriorityType(),
+                ])->toArray()
             ]);
 
-            // ✅ CRITICAL FIX: Use the model's isPriority() method instead of scopes
-            $priorityApplications = $allApplications->filter(function ($app) {
-                return $app->isPriority();
-            });
-
-            $regularApplications = $allApplications->filter(function ($app) {
-                return !$app->isPriority();
-            });
+            $priorityApplications = $allApplications->filter(fn($app) => $app->isPriority());
+            $regularApplications = $allApplications->filter(fn($app) => !$app->isPriority());
 
             $nowServingApp = QueueState::getNowServing();
 
@@ -248,29 +248,23 @@ class QueueController extends Controller
                 ->whereDate('updated_at', today())
                 ->count();
 
-            // Format priority applications
-            $formattedPriority = $priorityApplications->map(function ($app) {
-                return [
-                    'id' => $app->id,
-                    'queue_number' => $app->queue_number,
-                    'name' => $app->full_name,
-                    'service_type' => $app->service_type,
-                    'is_pwd' => $app->is_pwd,
-                    'senior_id' => $app->senior_id,
-                    'age' => $app->age,
-                    'priority_type' => $app->getPriorityType(),
-                ];
-            })->values(); // ✅ Reset array keys
+            $formattedPriority = $priorityApplications->map(fn($app) => [
+                'id' => $app->id,
+                'queue_number' => $app->queue_number,
+                'name' => $app->full_name,
+                'service_type' => $app->service_type,
+                'is_pwd' => $app->is_pwd,
+                'senior_id' => $app->senior_id,
+                'age' => $app->age,
+                'priority_type' => $app->getPriorityType(),
+            ])->values();
 
-            // Format regular applications
-            $formattedRegular = $regularApplications->map(function ($app) {
-                return [
-                    'id' => $app->id,
-                    'queue_number' => $app->queue_number,
-                    'name' => $app->full_name,
-                    'service_type' => $app->service_type,
-                ];
-            })->values(); // ✅ Reset array keys
+            $formattedRegular = $regularApplications->map(fn($app) => [
+                'id' => $app->id,
+                'queue_number' => $app->queue_number,
+                'name' => $app->full_name,
+                'service_type' => $app->service_type,
+            ])->values();
 
             $nowServingData = null;
             if ($nowServingApp) {
@@ -293,32 +287,23 @@ class QueueController extends Controller
                 ];
             }
 
-            $response = [
+            return response()->json([
                 'now_serving' => $nowServingData,
                 'priority' => $formattedPriority,
                 'regular' => $formattedRegular,
                 'cancelled' => $cancelledCount,
-            ];
-
-            return response()->json($response);
-
+            ]);
         } catch (\Exception $e) {
             Log::error('Queue index failed', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
-            
-            return response()->json([
-                'now_serving' => null,
-                'priority' => [],
-                'regular' => [],
-                'cancelled' => 0,
-            ], 500);
+            return response()->json(['now_serving' => null, 'priority' => [], 'regular' => [], 'cancelled' => 0], 500);
         }
     }
 
     /**
-     * ✅ Public Queue Display Data - Fixed for priority
+     * Public Queue Display Data
      */
     public function displayData(Request $request)
     {
@@ -328,7 +313,6 @@ class QueueController extends Controller
                 ->orderBy('queue_number')
                 ->get();
 
-            // ✅ Use consistent filtering
             $priority = $applications->filter(fn($app) => $app->isPriority())->take(5);
             $regular = $applications->filter(fn($app) => !$app->isPriority())->take(5);
 
@@ -343,24 +327,20 @@ class QueueController extends Controller
                 'priority_type' => $nowServing->getPriorityType(),
             ] : null;
 
-            $nextPriority = $priority->map(function ($app) {
-                return [
-                    'queue_number' => $app->queue_number,
-                    'name' => $app->full_name,
-                    'service_type' => $app->service_type,
-                    'is_priority' => true,
-                    'priority_type' => $app->getPriorityType(),
-                ];
-            })->values();
+            $nextPriority = $priority->map(fn($app) => [
+                'queue_number' => $app->queue_number,
+                'name' => $app->full_name,
+                'service_type' => $app->service_type,
+                'is_priority' => true,
+                'priority_type' => $app->getPriorityType(),
+            ])->values();
 
-            $nextRegular = $regular->map(function ($app) {
-                return [
-                    'queue_number' => $app->queue_number,
-                    'name' => $app->full_name,
-                    'service_type' => $app->service_type,
-                    'is_priority' => false,
-                ];
-            })->values();
+            $nextRegular = $regular->map(fn($app) => [
+                'queue_number' => $app->queue_number,
+                'name' => $app->full_name,
+                'service_type' => $app->service_type,
+                'is_priority' => false,
+            ])->values();
 
             return response()->json([
                 'now_serving' => $formattedNowServing,
@@ -368,36 +348,26 @@ class QueueController extends Controller
                 'regular' => $nextRegular,
             ]);
         } catch (\Exception $e) {
-            Log::error('Public queue display data failed', [
-                'error' => $e->getMessage()
-            ]);
-            return response()->json([
-                'now_serving' => null,
-                'priority' => [],
-                'regular' => [],
-            ], 500);
+            Log::error('Public queue display data failed', ['error' => $e->getMessage()]);
+            return response()->json(['now_serving' => null, 'priority' => [], 'regular' => []], 500);
         }
     }
 
     /**
-     * ✅ IMPROVED: Call next person with consistent priority logic
+     * Call next person
      */
     public function next(Request $request)
     {
         try {
-            // Get all pending applications
             $applications = Application::where('entered_queue', true)
                 ->where('status', 'pending')
                 ->orderBy('queue_number')
                 ->get();
 
-            // ✅ Use consistent filtering logic
             $priorityApps = $applications->filter(fn($app) => $app->isPriority());
             $regularApps = $applications->filter(fn($app) => !$app->isPriority());
 
             $nextApplication = null;
-
-            // Priority first, then regular
             if ($priorityApps->isNotEmpty()) {
                 $nextApplication = $priorityApps->sortBy('queue_number')->first();
             } elseif ($regularApps->isNotEmpty()) {
@@ -405,13 +375,9 @@ class QueueController extends Controller
             }
 
             if (!$nextApplication) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'No one in queue.'
-                ]);
+                return response()->json(['success' => false, 'message' => 'No one in queue.']);
             }
 
-            // Set as now serving
             QueueState::setNowServing($nextApplication->id);
             $nextApplication->update(['status' => 'serving']);
 
@@ -437,81 +403,55 @@ class QueueController extends Controller
                 ]
             ]);
         } catch (\Exception $e) {
-            Log::error('Next queue failed', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to call next person.'
-            ], 500);
+            Log::error('Next queue failed', ['error' => $e->getMessage()]);
+            return response()->json(['success' => false, 'message' => 'Failed to call next person.'], 500);
         }
     }
 
     /**
-     * ✅ Complete application by ID
+     * Complete application
      */
-        public function complete(Request $request, $id)
+    public function complete(Request $request, $id)
     {
         try {
             $application = Application::findOrFail($id);
-            $application->update([
-                'status' => 'completed',
-                'completed_at' => now() // ✅ Add this
-            ]);
+            $application->update(['status' => 'completed', 'completed_at' => now()]);
 
             if (QueueState::getNowServing()?->id == $id) {
                 QueueState::clearNowServing();
             }
 
             Log::info('Application completed', ['application_id' => $id]);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Service completed successfully.'
-            ]);
+            return response()->json(['success' => true, 'message' => 'Service completed successfully.']);
         } catch (\Exception $e) {
             Log::error('Complete application failed', ['error' => $e->getMessage(), 'id' => $id]);
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to complete service.'
-            ], 500);
+            return response()->json(['success' => false, 'message' => 'Failed to complete service.'], 500);
         }
     }
 
     /**
-     * ✅ Cancel application by ID
+     * Cancel application
      */
     public function cancel(Request $request, $id)
     {
         try {
             $application = Application::findOrFail($id);
-            $application->update([
-                'status' => 'cancelled',
-                'cancelled_at' => now() // ✅ Add this
-            ]);
+            $application->update(['status' => 'cancelled', 'cancelled_at' => now()]);
 
             if (QueueState::getNowServing()?->id == $id) {
                 QueueState::clearNowServing();
             }
 
             Log::info('Application cancelled', ['application_id' => $id]);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Application cancelled successfully.'
-            ]);
+            return response()->json(['success' => true, 'message' => 'Application cancelled successfully.']);
         } catch (\Exception $e) {
             Log::error('Cancel application failed', ['error' => $e->getMessage(), 'id' => $id]);
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to cancel application.'
-            ], 500);
+            return response()->json(['success' => false, 'message' => 'Failed to cancel application.'], 500);
         }
     }
 
     /**
-     * ✅ Requeue application by ID
+     * Requeue application
      */
     public function requeue(Request $request, $id)
     {
@@ -527,93 +467,60 @@ class QueueController extends Controller
             }
 
             Log::info('Application requeued', ['application_id' => $id]);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Application requeued successfully.'
-            ]);
+            return response()->json(['success' => true, 'message' => 'Application requeued successfully.']);
         } catch (\Exception $e) {
             Log::error('Requeue application failed', ['error' => $e->getMessage(), 'id' => $id]);
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to requeue application.'
-            ], 500);
+            return response()->json(['success' => false, 'message' => 'Failed to requeue application.'], 500);
         }
     }
 
     /**
-     * ✅ Complete currently serving
+     * Complete currently serving
      */
     public function completeNow(Request $request)
     {
         $nowServing = QueueState::getNowServing();
-        if (!$nowServing) {
-            return response()->json([
-                'success' => false,
-                'message' => 'No one is currently being served.'
-            ]);
-        }
+        if (!$nowServing) return response()->json(['success' => false, 'message' => 'No one is currently being served.']);
         return $this->complete($request, $nowServing->id);
     }
 
     /**
-     * ✅ Cancel currently serving
+     * Cancel currently serving
      */
     public function cancelNow(Request $request)
     {
         $nowServing = QueueState::getNowServing();
-        if (!$nowServing) {
-            return response()->json([
-                'success' => false,
-                'message' => 'No one is currently being served.'
-            ]);
-        }
+        if (!$nowServing) return response()->json(['success' => false, 'message' => 'No one is currently being served.']);
         return $this->cancel($request, $nowServing->id);
     }
 
     /**
-     * ✅ Requeue currently serving
+     * Requeue currently serving
      */
     public function requeueNow(Request $request)
     {
         $nowServing = QueueState::getNowServing();
-        if (!$nowServing) {
-            return response()->json([
-                'success' => false,
-                'message' => 'No one is currently being served.'
-            ]);
-        }
+        if (!$nowServing) return response()->json(['success' => false, 'message' => 'No one is currently being served.']);
         QueueState::clearNowServing();
         return $this->requeue($request, $nowServing->id);
     }
 
     /**
-     * ✅ Generate next queue number (atomic & daily reset)
+     * Generate next queue number (atomic & daily reset)
      */
     private function generateQueueNumber()
     {
         return DB::transaction(function () {
-            // Step 1: Get or create today's counter
             $counter = QueueCounter::firstOrCreate(['date' => today()], ['counter' => 0]);
-
-            // Step 2: Re-fetch with row lock (this executes the lock)
-            $locked = QueueCounter::where('id', $counter->id)
-                ->lockForUpdate()
-                ->first();
-
-            if (! $locked) {
-                throw new \Exception('Queue counter not found.');
-            }
-
-            // Step 3: Increment safely
+            $locked = QueueCounter::where('id', $counter->id)->lockForUpdate()->first();
+            if (!$locked) throw new \Exception('Queue counter not found.');
             $locked->increment('counter');
-
             return $locked->counter;
         });
     }
 
     /**
-     * ✅ Calculate estimated wait time
+     * Calculate estimated wait time
      */
     private function calculateEstimatedWait($application)
     {
@@ -623,18 +530,16 @@ class QueueController extends Controller
             ->count();
 
         $estimatedMinutes = $position * 7;
-
         if ($estimatedMinutes <= 0) return 'You\'re next!';
         if ($estimatedMinutes < 5) return 'Less than 5 minutes';
         if ($estimatedMinutes < 60) return $estimatedMinutes . ' minutes';
-
         $hours = floor($estimatedMinutes / 60);
         $minutes = $estimatedMinutes % 60;
         return $hours . 'h ' . ($minutes > 0 ? $minutes . 'm' : '');
     }
 
     /**
-     * ✅ Print queue ticket (placeholder)
+     * Print queue ticket (placeholder)
      */
     private function printQueueTicket($application)
     {
@@ -645,5 +550,132 @@ class QueueController extends Controller
             'is_priority' => $application->isPriority(),
             'estimated_wait' => $this->calculateEstimatedWait($application)
         ]);
+    }
+
+    /**
+     * Handle QR scan and show welcome screen (web view version)
+     */
+    public function handleScan(Request $request)
+    {
+        $token = $request->get('token');
+
+        // If no token, show scanner page
+        if (!$token) {
+            return view('user.online.scan-qr');
+        }
+
+        try {
+            $application = Application::where('qr_token', $token)->first();
+
+            if (!$application) {
+                return view('user.online.scan-qr', [
+                    'error' => 'Invalid QR code - application not found.'
+                ]);
+            }
+
+            if ($application->entered_queue) {
+                return view('user.online.scan-qr', [
+                    'error' => 'You are already in the queue.'
+                ]);
+            }
+
+            if (!$application->isQrValid()) {
+                return view('user.online.scan-qr', [
+                    'error' => 'QR code has expired. Please apply again.'
+                ]);
+            }
+
+            // Assign queue number
+            $queueNumber = $this->generateQueueNumber();
+            $application->update([
+                'entered_queue' => true,
+                'queue_number' => $queueNumber,
+                'queue_entered_at' => now()
+            ]);
+
+            Log::info('Application entered queue via QR', [
+                'id' => $application->id,
+                'queue_number' => $queueNumber
+            ]);
+
+            // Show welcome screen directly
+            return view('user.online.welcome', compact('application'));
+        } catch (\Exception $e) {
+            Log::error('QR scan failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'token' => $token
+            ]);
+
+            return view('user.online.scan-qr', [
+                'error' => 'Scan failed. Please try again.'
+            ]);
+        }
+    }
+
+    /**
+     * API endpoint: Scan QR code, validate token, enter queue, return JSON
+     */
+    public function handleScanAjax(Request $request)
+    {
+        $token = $request->input('token');
+
+        if (!$token) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No token provided.'
+            ], 400);
+        }
+
+        $application = Application::where('qr_token', $token)->first();
+
+        if (!$application) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid QR code - application not found.'
+            ], 404);
+        }
+
+        if ($application->entered_queue) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You are already in the queue.',
+                'name' => $application->full_name,
+                'queue_number' => $application->queue_number
+            ], 409);
+        }
+
+        if (!$application->isQrValid()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'QR code has expired. Please apply again.'
+            ], 410);
+        }
+
+        // Enter into queue
+        $queueNumber = $this->generateQueueNumber();
+        $application->update([
+            'entered_queue' => true,
+            'queue_number' => $queueNumber,
+            'queue_entered_at' => now()
+        ]);
+
+        Log::info('QR Scan Success (API)', [
+            'application_id' => $application->id,
+            'queue_number' => $queueNumber,
+            'token' => $token
+        ]);
+
+        return response()->json([
+    'success' => true,
+    'name' => $application->full_name,
+    'queue_number' => $queueNumber,
+    'service_type' => $application->service_type,
+    'is_priority' => $application->isPriority(),
+    'priority_type' => $application->getPriorityType(),
+    'estimated_wait' => $this->calculateEstimatedWait($application),
+    'application_id' => $application->id  // ← Add this line
+]);
+      
     }
 }
