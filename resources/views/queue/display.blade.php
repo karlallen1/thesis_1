@@ -44,7 +44,7 @@
         // Prevent unwanted interactions
         document.addEventListener('contextmenu', e => e.preventDefault());
         document.addEventListener('keydown', e => {
-            if (['', 'F5', 'F11', 'I'].includes(e.key)) e.preventDefault();
+            if (['', 'F5', '', 'I'].includes(e.key)) e.preventDefault();
         });
     </script>
 </head>

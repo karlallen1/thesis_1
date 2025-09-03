@@ -92,14 +92,9 @@
 
       return {
         requirements: [
-          'Barangay Clearance',
-          'Cedula (Community Tax Certificate)',
+          'Certified True Copy of the Tax Declaration',
+          'Updated Real Property Tax Receipt',
           'Valid ID (Government-issued)',
-          'Tax Declaration',
-          'Proof of Ownership',
-          'TCT / Deed of Sale',
-          'Certificate of Occupancy',
-          'Latest Tax Receipt',
         ],
         checked: [],
         showReminder: false,
