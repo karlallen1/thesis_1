@@ -8,7 +8,6 @@ use App\Models\Admin;
 
 class AdminAuthController extends Controller
 {
-    // LOGIN
     public function login(Request $request)
     {
         $request->validate([
@@ -25,27 +24,22 @@ class AdminAuthController extends Controller
                 'role' => $admin->role,
             ]);
 
-            // Redirect based on role using named routes
-            if ($admin->role === 'main_admin') {
+            if ($admin->isSuperAdmin() || $admin->isMainAdmin()) {
                 return redirect()->route('admin.dashboard-main')->with('success', 'Login successful');
-            } elseif ($admin->role === 'staff') {
+            } elseif ($admin->isStaff()) {
                 return redirect()->route('admin.dashboard-staff')->with('success', 'Login successful');
-            } else {
-                return back()->with('error', 'Unknown role. Please contact system administrator.');
             }
         }
 
         return back()->with('error', 'Invalid username or password');
     }
 
-    // LOGOUT
     public function logout()
     {
         session()->flush();
         return redirect()->route('admin.login')->with('success', 'Logged out successfully');
     }
 
-    // SHOW LOGIN FORM
     public function showLoginForm()
     {
         return view('admin.login');

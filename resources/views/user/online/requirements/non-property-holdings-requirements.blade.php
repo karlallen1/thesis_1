@@ -3,8 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Tax Declaration Requirements</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <title>Non Property Holdings Requirements</title>
+  <link rel="icon" href="{{ asset('img/mainlogo.png') }}" type="image/png">
+  @vite(['resources/css/app.css', 'resources/js/app.js'])
   <script src="https://unpkg.com/alpinejs" defer></script>
 </head>
 <body class="m-0 p-0 bg-gray-100">
@@ -91,14 +92,12 @@
 
       return {
         requirements: [
-          'Barangay Clearance',
-          'Cedula (Community Tax Certificate)',
-          'Valid ID (Government-issued)',
-          'Tax Declaration',
-          'Proof of Ownership',
-          'TCT / Deed of Sale',
-          'Certificate of Occupancy',
-          'Latest Tax Receipt',
+          'Letter Request/Application Form',
+          'Valid ID of the property owner or representative',
+          'Real Property Tax Receipt ("Amilyar")/Tax Declaration',
+          // If applying as a Representative:
+          'Authorization Letter or SPA',
+          'Owners ID:',
         ],
         checked: [],
         showReminder: false,

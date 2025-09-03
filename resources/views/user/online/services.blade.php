@@ -1,84 +1,123 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>North Caloocan City Hall - Services</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>North Caloocan City Hall - Services</title>
+    <link rel="icon" href="{{ asset('img/mainlogo.png') }}" type="image/png">
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <style>
+        @keyframes staggerFadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .stagger-1 { animation-delay: 0.2s; }
+        .stagger-2 { animation-delay: 0.4s; }
+        .stagger-3 { animation-delay: 0.6s; }
+        .stagger-4 { animation-delay: 0.8s; }
 
-  <style>
-    @keyframes fadeSlideIn {
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-    .fade-slide-in {
-      opacity: 0;
-      transform: translateY(30px);
-      animation: fadeSlideIn 0.8s ease-out forwards;
-    }
-  </style>
+        .animated {
+            opacity: 0;
+            animation: staggerFadeIn 0.7s ease-out forwards;
+        }
+
+        .service-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .service-card:hover {
+            transform: translateY(-6px) scale(1.02);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+        }
+        .service-card:focus {
+            outline: 2px solid white;
+            outline-offset: 2px;
+        }
+
+        .bg-gradient-overlay {
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.5) 0%, rgba(0, 0, 0, 0.8) 100%);
+        }
+
+        .font-serif-thin {
+            font-family: 'Georgia', 'Times New Roman', serif;
+            font-weight: 300;
+        }
+    </style>
 </head>
 
-<body class="bg-white font-sans text-gray-800">
+<body class="bg-gray-50 font-sans text-gray-800 antialiased">
 
   <!-- Header -->
-  <header class="flex flex-col md:flex-row items-center justify-between p-3 md:px-6 bg-amber-600 text-white shadow border-b border-white">
-
-    <!-- Left -->
-    <div class="flex items-center gap-3 mb-2 md:mb-0">
-      <img src="{{ asset('img/mainlogo.png') }}" alt="City Hall Logo" class="w-10 h-10 object-contain" />
-      <h2 class="text-center md:text-left text-sm md:text-base leading-tight">
-        <u class="font-bold">REPUBLIC OF THE PHILIPPINES</u><br />
-        <span class="font-bold">Caloocan City Hall</span>
-      </h2>
+  <header class="flex flex-col sm:flex-row items-center justify-between px-4 py-3 bg-amber-600 text-white shadow-lg">
+    <div class="flex items-center gap-3 mb-2 sm:mb-0">
+      <img src="{{ asset('img/mainlogo.png') }}" alt="City Hall Logo" class="w-12 h-12 object-contain" />
+      <div class="text-center sm:text-left leading-tight">
+        <p class="text-xs sm:text-sm opacity-90">REPUBLIC OF THE PHILIPPINES</p>
+        <p class="font-bold text-sm sm:text-base">North Caloocan City Hall</p>
+      </div>
     </div>
 
-    <!-- Right (DateTime) -->
-    <div class="flex items-center gap-2" x-data="datetimeDisplay()" x-init="init()">
-      <p class="text-xs" x-text="datetime"></p>
-      <img src="{{ asset('img/philogo.png') }}" alt="Philippines Logo" class="w-10 h-10 object-contain" />
+    <!-- Date & Time -->
+    <div class="flex items-center gap-3 text-center" x-data="datetimeDisplay()" x-init="init()">
+      <img src="{{ asset('img/philogo.png') }}" alt="Philippine Flag" class="w-10 h-8 object-contain" />
+      <p class="text-sm sm:text-base font-medium" x-text="datetime"></p>
     </div>
   </header>
 
-  <!-- Services Section -->
-  <section class="relative h-[calc(100vh-72px)] flex items-center justify-center overflow-hidden">
-    <!-- Background -->
-    <div class="absolute inset-0 bg-cover bg-center z-0" style="background-image: url('{{ asset('img/bgbackground2.jpg') }}');"></div>
-    <div class="absolute inset-0 bg-black bg-opacity-60 z-0"></div>
+  <!-- Hero Section -->
+  <section class="relative min-h-screen flex items-center justify-center overflow-hidden">
+    <!-- Background Image -->
+    <div class="absolute inset-0 bg-cover bg-center z-0"
+         style="background-image: url('{{ asset('img/bgbackground2.jpg') }}');">
+    </div>
 
-    <!-- Foreground -->
-    <div class="relative z-10 fade-slide-in px-4 text-white text-center">
-      <p class="text-2xl md:text-3xl font-medium font-serif mb-8">SELECT SERVICE:</p>
+    <!-- Gradient Overlay -->
+    <div class="absolute inset-0 bg-gradient-overlay z-10"></div>
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 md:gap-8 justify-center">
+    <!-- Content -->
+    <div class="relative z-20 text-center px-6 max-w-4xl mx-auto">
+      <!-- Title -->
+      <p class="text-xl sm:text-2xl text-white/90 mb-12 max-w-2xl mx-auto leading-relaxed animated stagger-1">
+        Select a service to begin your pre-registration process.
+      </p>
+
+      <!-- Services Grid -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 md:gap-8 max-w-4xl mx-auto">
+        <!-- Tax Declaration -->
         <a href="{{ url('/requirements/tax-declaration') }}?service_type=Tax Declaration"
-           class="w-64 h-14 flex items-center justify-center bg-amber-600 hover:bg-amber-700 text-white text-lg font-semibold rounded-lg border border-white transition-all duration-300 hover:-translate-y-1 shadow-lg focus:outline-none focus:ring-2 focus:ring-white">
+           class="service-card animated stagger-2 bg-amber-600 hover:bg-amber-700 text-white text-lg font-semibold py-4 px-6 rounded-xl border border-white/30 shadow-xl transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-white/50">
           Tax Declaration (CTC)
         </a>
 
+        <!-- No Improvement -->
         <a href="{{ url('/requirements/no-improvement') }}?service_type=Certificate of No Improvement"
-           class="w-64 h-14 flex items-center justify-center bg-amber-600 hover:bg-amber-700 text-white text-lg font-semibold rounded-lg border border-white transition-all duration-300 hover:-translate-y-1 shadow-lg focus:outline-none focus:ring-2 focus:ring-white">
+           class="service-card animated stagger-3 bg-amber-600 hover:bg-amber-700 text-white text-lg font-semibold py-4 px-6 rounded-xl border border-white/30 shadow-xl transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-white/50">
           Certificate of No Improvement
         </a>
 
+        <!-- Property Holdings -->
         <a href="{{ url('/requirements/property-holdings') }}?service_type=Certificate of Property Holdings"
-           class="w-64 h-14 flex items-center justify-center bg-amber-600 hover:bg-amber-700 text-white text-lg font-semibold rounded-lg border border-white transition-all duration-300 hover:-translate-y-1 shadow-lg focus:outline-none focus:ring-2 focus:ring-white">
+           class="service-card animated stagger-3 bg-amber-600 hover:bg-amber-700 text-white text-lg font-semibold py-4 px-6 rounded-xl border border-white/30 shadow-xl transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-white/50">
           Certificate of Property Holdings
         </a>
 
+        <!-- Non-Property Holdings -->
         <a href="{{ url('/requirements/non-property-holdings') }}?service_type=Certificate of Non-Property Holdings"
-           class="w-64 h-14 flex items-center justify-center bg-amber-600 hover:bg-amber-700 text-white text-lg font-semibold rounded-lg border border-white transition-all duration-300 hover:-translate-y-1 shadow-lg focus:outline-none focus:ring-2 focus:ring-white">
+           class="service-card animated stagger-4 bg-amber-600 hover:bg-amber-700 text-white text-lg font-semibold py-4 px-6 rounded-xl border border-white/30 shadow-xl transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-white/50">
           Certificate of Non-Property Holdings
         </a>
       </div>
     </div>
   </section>
 
-  <!-- Alpine.js for DateTime -->
+  <!-- Alpine.js: DateTime -->
   <script>
     function datetimeDisplay() {
       return {

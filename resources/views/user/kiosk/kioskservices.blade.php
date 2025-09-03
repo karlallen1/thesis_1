@@ -1,259 +1,367 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>North Caloocan City Hall - Walk-in Services</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>North Caloocan City Hall - Walk-in Services</title>
+    <link rel="icon" href="{{ asset('img/mainlogo.png') }}" type="image/png">
+    <!-- Tailwind CSS -->
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-
-  <style>
-    @keyframes fadeSlideIn {
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-    .fade-slide-in {
-      opacity: 0;
-      transform: translateY(30px);
-      animation: fadeSlideIn 0.8s ease-out forwards;
-    }
-    
-    .service-card {
-      transition: all 0.3s ease;
-      backdrop-filter: blur(10px);
-    }
-    
-    .service-card:hover {
-      transform: translateY(-8px) scale(1.02);
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-    }
-    
-    .service-card:active {
-      transform: translateY(-4px) scale(1.01);
-    }
-    
-    @keyframes pulse-glow {
-      0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4); }
-      50% { box-shadow: 0 0 0 10px rgba(245, 158, 11, 0); }
-    }
-    
-    .pulse-glow {
-      animation: pulse-glow 2s infinite;
-    }
-  </style>
+    <style>
+        .font-georgia { 
+            font-family: Georgia, 'Times New Roman', Times, serif; 
+        }
+        
+        body {
+            font-family: Georgia, 'Times New Roman', Times, serif;
+            background-image: url('{{ asset('img/bgbackground2.jpg') }}');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            background-repeat: no-repeat;
+        }
+        
+        .bg-overlay {
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(2px);
+        }
+        
+        .header-glass {
+            background: rgba(245, 158, 11, 0.95);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        
+        .service-card {
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(15px);
+            position: relative;
+            overflow: hidden;
+            background: rgba(255, 255, 255, 0.95);
+        }
+        
+        .service-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+            transition: left 0.6s;
+        }
+        
+        .service-card:hover::before {
+            left: 100%;
+        }
+        
+        .service-card:hover {
+            transform: translateY(-12px) scale(1.03);
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+            border-color: rgba(0, 0, 0, 0.1);
+        }
+        
+        .service-icon {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .service-card:hover .service-icon {
+            transform: scale(1.15) rotate(5deg);
+        }
+        
+        .btn-ripple {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn-ripple::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: rgba(255, 255, 255, 0.4);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: width 0.8s, height 0.8s;
+        }
+        
+        .btn-ripple:active::after {
+            width: 300px;
+            height: 300px;
+        }
+        
+        @keyframes fadeSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(40px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .fade-slide-in {
+            animation: fadeSlideIn 0.8s ease-out forwards;
+        }
+        
+        .stagger-1 { animation-delay: 0.1s; }
+        .stagger-2 { animation-delay: 0.2s; }
+        .stagger-3 { animation-delay: 0.3s; }
+        .stagger-4 { animation-delay: 0.4s; }
+        
+        .gradient-text {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        @media (min-width: 1024px) {
+            h1 { font-size: clamp(2.5rem, 5vw, 4rem); }
+            h3 { font-size: clamp(1.25rem, 2vw, 1.5rem); }
+        }
+    </style>
 </head>
 
-<body class="bg-white font-sans text-gray-800">
+<body class="min-h-screen">
 
-  <!-- Header -->
-  <header class="flex flex-col md:flex-row items-center justify-between p-3 md:px-6 bg-amber-600 text-white shadow border-b border-white">
+    <!-- Background Overlay -->
+    <div class="fixed inset-0 bg-overlay z-0"></div>
 
-    <!-- Left -->
-    <div class="flex items-center gap-3 mb-2 md:mb-0">
-      <img src="{{ asset('img/mainlogo.png') }}" alt="City Hall Logo" class="w-10 h-10 object-contain" />
-      <h2 class="text-center md:text-left text-sm md:text-base leading-tight">
-        <u class="font-bold">REPUBLIC OF THE PHILIPPINES</u><br />
-        <span class="font-bold">Caloocan City Hall</span>
-      </h2>
-    </div>
+    <!-- Header -->
+    <header class="header-glass sticky top-0 z-50 relative">
+        <div class="container mx-auto px-6 py-6">
+            <div class="flex items-center justify-between">
+                <!-- Left: NCC Logo + Text -->
+                <div class="flex items-center gap-4">
+                    <img src="{{ asset('img/mainlogo.png') }}" alt="North Caloocan City Hall" class="w-16 h-16 object-contain drop-shadow-lg" />
+                    <div class="text-white">
+                        <p class="text-sm font-medium opacity-90">REPUBLIC OF THE PHILIPPINES</p>
+                        <p class="text-xl font-georgia font-bold">North Caloocan City Hall</p>
+                    </div>
+                </div>
 
-    <!-- Center - Kiosk Mode Indicator -->
-    <div class="hidden md:flex items-center gap-2 bg-white/20 px-4 py-2 rounded-full">
-      <div class="w-3 h-3 bg-green-400 rounded-full pulse-glow"></div>
-      <span class="text-sm font-medium">WALK-IN KIOSK</span>
-    </div>
+                <!-- Right: Date, Time, PH Logo -->
+                <div class="flex items-center gap-6" x-data="datetimeDisplay()" x-init="init()">
+                    <div class="text-right text-white">
+                        <p class="text-lg font-georgia font-semibold whitespace-nowrap" x-text="date"></p>
+                        <p class="text-base font-medium opacity-90 whitespace-nowrap" x-text="time"></p>
+                    </div>
+                    <img src="{{ asset('img/philogo.png') }}" alt="Philippines Logo" class="w-16 h-16 object-contain drop-shadow-lg" />
+                </div>
+            </div>
+        </div>
+    </header>
 
-    <!-- Right (DateTime) -->
-    <div class="flex items-center gap-2" x-data="datetimeDisplay()" x-init="init()">
-      <p class="text-xs" x-text="datetime"></p>
-      <img src="{{ asset('img/philogo.png') }}" alt="Philippines Logo" class="w-10 h-10 object-contain" />
-    </div>
-  </header>
-
-  <!-- Services Section -->
-  <section class="relative min-h-[calc(100vh-72px)] flex items-center justify-center overflow-hidden py-8">
-    <!-- Background -->
-    <div class="absolute inset-0 bg-cover bg-center z-0" style="background-image: url('{{ asset('img/bgbackground2.jpg') }}');"></div>
-    <div class="absolute inset-0 bg-black bg-opacity-60 z-0"></div>
-
-    <!-- Foreground -->
-    <div class="relative z-10 fade-slide-in px-4 text-white text-center max-w-6xl mx-auto">
-      
-      <!-- Header Text -->
-      <div class="mb-12">
-        <h1 class="text-3xl md:text-4xl font-bold font-serif mb-2">Welcome!</h1>
-        <p class="text-xl md:text-2xl font-medium font-serif mb-4">SELECT A SERVICE TO GET STARTED:</p>
-        <div class="w-24 h-1 bg-amber-500 mx-auto rounded-full"></div>
-      </div>
-
-      <!-- Service Cards Grid -->
-      <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 md:gap-8 justify-center">
+    <!-- Main Content -->
+    <main class="container mx-auto px-6 py-16 sm:px-8 lg:px-12 max-w-7xl relative z-10">
         
-        <!-- Tax Declaration Card -->
-        <a href="/kiosk/requirements/tax-declaration?service_type=Tax Declaration"
-           class="service-card group bg-white/95 backdrop-blur-sm rounded-2xl p-6 text-gray-800 hover:bg-white transition-all duration-300 border border-white/20">
-          <div class="flex flex-col items-center text-center space-y-4">
-            <!-- Icon -->
-            <div class="w-16 h-16 bg-gradient-to-br from-amber-500 to-amber-600 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-              <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-              </svg>
-            </div>
-            
-            <!-- Title -->
-            <h3 class="text-lg font-bold text-gray-800 group-hover:text-amber-600 transition-colors">
-              Tax Declaration
-            </h3>
-            
-            <!-- Subtitle -->
-            <p class="text-sm text-gray-600 group-hover:text-gray-700">
-              Community Tax Certificate (CTC)
+        <!-- Welcome Header -->
+        <div class="text-center mb-16 max-w-4xl mx-auto fade-slide-in">
+            <h1 class="text-4xl sm:text-5xl lg:text-6xl font-georgia font-bold text-white mb-6 leading-tight drop-shadow-2xl">
+                <span class="text-white">Welcome!</span>
+            </h1>
+            <p class="text-xl sm:text-2xl font-georgia font-medium text-white mb-6 drop-shadow-lg">
+                SELECT A SERVICE TO GET STARTED
             </p>
-            
-            <!-- Hover Arrow -->
-            <div class="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-              <svg class="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
-              </svg>
-            </div>
-          </div>
-        </a>
+            <div class="w-24 h-1 bg-gradient-to-r from-amber-400 to-amber-600 mx-auto rounded-full shadow-lg"></div>
+        </div>
 
-        <!-- Certificate of No Improvement Card -->
-        <a href="/kiosk/requirements/no-improvement?service_type=Certificate of No Improvement"
-           class="service-card group bg-white/95 backdrop-blur-sm rounded-2xl p-6 text-gray-800 hover:bg-white transition-all duration-300 border border-white/20">
-          <div class="flex flex-col items-center text-center space-y-4">
-            <!-- Icon -->
-            <div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-              <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-              </svg>
+        <!-- Service Cards Grid -->
+        <div class="grid sm:grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-8 lg:gap-10">
+            
+            <!-- Tax Declaration -->
+            <a href="/kiosk/requirements/tax-declaration?service_type=Tax Declaration"
+               class="service-card stagger-1 fade-slide-in block bg-white rounded-2xl shadow-lg p-8 text-center hover:border-amber-200 transition-all duration-300 group">
+                <div class="flex flex-col items-center h-full">
+                    <div class="service-icon w-20 h-20 bg-gradient-to-br from-amber-400 to-amber-600 rounded-2xl flex items-center justify-center shadow-lg mb-6">
+                        <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                    </div>
+                    <div class="flex-grow flex flex-col justify-between">
+                        <div>
+                            <h3 class="text-xl font-georgia font-bold text-gray-900 mb-3 group-hover:text-amber-600 transition-colors">
+                                Tax Declaration
+                            </h3>
+                            <p class="text-gray-600 text-sm leading-relaxed mb-6">
+                                Community Tax Certificate (CTC)
+                            </p>
+                        </div>
+                        <span class="inline-block bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white font-georgia font-semibold py-3 px-6 rounded-xl transition-all duration-200 btn-ripple focus:outline-none focus:ring-4 focus:ring-amber-200 w-full mt-auto">
+                            Get Started
+                        </span>
+                    </div>
+                </div>
+            </a>
+
+            <!-- No Improvement -->
+            <a href="/kiosk/requirements/no-improvement?service_type=Certificate of No Improvement"
+               class="service-card stagger-2 fade-slide-in block bg-white rounded-2xl shadow-lg p-8 text-center hover:border-blue-200 transition-all duration-300 group">
+                <div class="flex flex-col items-center h-full">
+                    <div class="service-icon w-20 h-20 bg-gradient-to-br from-blue-400 to-blue-600 rounded-2xl flex items-center justify-center shadow-lg mb-6">
+                        <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                        </svg>
+                    </div>
+                    <div class="flex-grow flex flex-col justify-between">
+                        <div>
+                            <h3 class="text-xl font-georgia font-bold text-gray-900 mb-3 group-hover:text-blue-600 transition-colors">
+                                No Improvement
+                            </h3>
+                            <p class="text-gray-600 text-sm leading-relaxed mb-6">
+                                Certificate of No Improvement
+                            </p>
+                        </div>
+                        <span class="inline-block bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-georgia font-semibold py-3 px-6 rounded-xl transition-all duration-200 btn-ripple focus:outline-none focus:ring-4 focus:ring-blue-200 w-full mt-auto">
+                            Get Started
+                        </span>
+                    </div>
+                </div>
+            </a>
+
+            <!-- Property Holdings -->
+            <a href="/kiosk/requirements/property-holdings?service_type=Certificate of Property Holdings"
+               class="service-card stagger-3 fade-slide-in block bg-white rounded-2xl shadow-lg p-8 text-center hover:border-green-200 transition-all duration-300 group">
+                <div class="flex flex-col items-center h-full">
+                    <div class="service-icon w-20 h-20 bg-gradient-to-br from-green-400 to-green-600 rounded-2xl flex items-center justify-center shadow-lg mb-6">
+                        <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 21v-4a2 2 0 012-2h2a2 2 0 012 2v4"/>
+                        </svg>
+                    </div>
+                    <div class="flex-grow flex flex-col justify-between">
+                        <div>
+                            <h3 class="text-xl font-georgia font-bold text-gray-900 mb-3 group-hover:text-green-600 transition-colors">
+                                Property Holdings
+                            </h3>
+                            <p class="text-gray-600 text-sm leading-relaxed mb-6">
+                                Certificate of Property Holdings
+                            </p>
+                        </div>
+                        <span class="inline-block bg-green-600 hover:bg-green-700 active:bg-green-800 text-white font-georgia font-semibold py-3 px-6 rounded-xl transition-all duration-200 btn-ripple focus:outline-none focus:ring-4 focus:ring-green-200 w-full mt-auto">
+                            Get Started
+                        </span>
+                    </div>
+                </div>
+            </a>
+
+            <!-- Non-Property Holdings -->
+            <a href="/kiosk/requirements/non-property-holdings?service_type=Certificate of Non-Property Holdings"
+               class="service-card stagger-4 fade-slide-in block bg-white rounded-2xl shadow-lg p-8 text-center hover:border-purple-200 transition-all duration-300 group">
+                <div class="flex flex-col items-center h-full">
+                    <div class="service-icon w-20 h-20 bg-gradient-to-br from-purple-400 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg mb-6">
+                        <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4"/>
+                        </svg>
+                    </div>
+                    <div class="flex-grow flex flex-col justify-between">
+                        <div>
+                            <h3 class="text-xl font-georgia font-bold text-gray-900 mb-3 group-hover:text-purple-600 transition-colors">
+                                Non-Property Holdings
+                            </h3>
+                            <p class="text-gray-600 text-sm leading-relaxed mb-6">
+                                Certificate of Non-Property Holdings
+                            </p>
+                        </div>
+                        <span class="inline-block bg-purple-600 hover:bg-purple-700 active:bg-purple-800 text-white font-georgia font-semibold py-3 px-6 rounded-xl transition-all duration-200 btn-ripple focus:outline-none focus:ring-4 focus:ring-purple-200 w-full mt-auto">
+                            Get Started
+                        </span>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <!-- Additional Info Section -->
+        <div class="mt-16 text-center fade-slide-in">
+            <div class="bg-white/95 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-8 max-w-3xl mx-auto">
+                <div class="flex items-center justify-center mb-6">
+                    <div class="w-16 h-16 bg-gradient-to-br from-amber-400 to-amber-600 rounded-full flex items-center justify-center">
+                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                </div>
+                <h3 class="text-2xl font-georgia font-bold text-gray-900 mb-4">Need Assistance?</h3>
+                <p class="text-gray-600 leading-relaxed mb-6">
+                    Our friendly staff is here to help you navigate through the process. 
+                    If you need guidance selecting the right service, please don't hesitate to ask.
+                </p>
+                <div class="flex flex-wrap justify-center gap-4 text-sm text-gray-500">
+                    <span class="bg-gray-100 px-4 py-2 rounded-full">✓ Fast Processing</span>
+                    <span class="bg-gray-100 px-4 py-2 rounded-full">✓ Digital Queue System</span>
+                    <span class="bg-gray-100 px-4 py-2 rounded-full">✓ Professional Service</span>
+                </div>
             </div>
-            
-            <!-- Title -->
-            <h3 class="text-lg font-bold text-gray-800 group-hover:text-blue-600 transition-colors">
-              No Improvement
-            </h3>
-            
-            <!-- Subtitle -->
-            <p class="text-sm text-gray-600 group-hover:text-gray-700">
-              Certificate of No Improvement
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900/90 backdrop-blur-sm text-white py-8 mt-16 relative z-10 border-t border-white/10">
+        <div class="container mx-auto px-6 text-center">
+            <p class="text-gray-300 font-georgia font-medium text-lg">
+                North Caloocan City Hall - Queue Management System
             </p>
-            
-            <!-- Hover Arrow -->
-            <div class="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-              <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
-              </svg>
-            </div>
-          </div>
-        </a>
-
-        <!-- Property Holdings Card -->
-        <a href="/kiosk/requirements/property-holdings?service_type=Certificate of Property Holdings"
-           class="service-card group bg-white/95 backdrop-blur-sm rounded-2xl p-6 text-gray-800 hover:bg-white transition-all duration-300 border border-white/20">
-          <div class="flex flex-col items-center text-center space-y-4">
-            <!-- Icon -->
-            <div class="w-16 h-16 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-              <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z"/>
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 21v-4a2 2 0 012-2h2a2 2 0 012 2v4"/>
-              </svg>
-            </div>
-            
-            <!-- Title -->
-            <h3 class="text-lg font-bold text-gray-800 group-hover:text-green-600 transition-colors">
-              Property Holdings
-            </h3>
-            
-            <!-- Subtitle -->
-            <p class="text-sm text-gray-600 group-hover:text-gray-700">
-              Certificate of Property Holdings
+            <p class="text-gray-400 text-sm mt-2">
+                &copy; 2025 NCC | Serving the Community with Excellence
             </p>
-            
-            <!-- Hover Arrow -->
-            <div class="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-              <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
-              </svg>
-            </div>
-          </div>
-        </a>
+        </div>
+    </footer>
 
-        <!-- Non-Property Holdings Card -->
-        <a href="/kiosk/requirements/non-property-holdings?service_type=Certificate of Non-Property Holdings"
-           class="service-card group bg-white/95 backdrop-blur-sm rounded-2xl p-6 text-gray-800 hover:bg-white transition-all duration-300 border border-white/20">
-          <div class="flex flex-col items-center text-center space-y-4">
-            <!-- Icon -->
-            <div class="w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-600 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-              <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4"/>
-              </svg>
-            </div>
-            
-            <!-- Title -->
-            <h3 class="text-lg font-bold text-gray-800 group-hover:text-purple-600 transition-colors">
-              Non-Property Holdings
-            </h3>
-            
-            <!-- Subtitle -->
-            <p class="text-sm text-gray-600 group-hover:text-gray-700">
-              Certificate of Non-Property Holdings
-            </p>
-            
-            <!-- Hover Arrow -->
-            <div class="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-              <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
-              </svg>
-            </div>
-          </div>
-        </a>
+    <!-- Alpine.js for DateTime -->
+    <script>
+        function datetimeDisplay() {
+            return {
+                date: '',
+                time: '',
+                init() {
+                    this.updateTime();
+                    setInterval(() => this.updateTime(), 1000);
+                },
+                updateTime() {
+                    const now = new Date();
+                    
+                    // Format Date
+                    const dateFormatter = new Intl.DateTimeFormat('en-US', {
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                    });
+                    this.date = dateFormatter.format(now);
 
-      </div>
-
-      <!-- Footer Info -->
-      <div class="mt-12 text-center">
-        <p class="text-sm text-white/80 mb-2">
-          👆 Touch any service above to start your application
-        </p>
-        <p class="text-xs text-white/60">
-          Walk-in applicants will be directly added to the queue after form submission
-        </p>
-      </div>
-
-    </div>
-  </section>
-
-  <!-- Alpine.js for DateTime -->
-  <script>
-    function datetimeDisplay() {
-      return {
-        datetime: '',
-        init() {
-          this.updateTime();
-          setInterval(() => this.updateTime(), 1000);
-        },
-        updateTime() {
-          const now = new Date();
-          const options = {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit',
-            hour12: true,
-            timeZone: 'Asia/Manila'
-          };
-          this.datetime = new Intl.DateTimeFormat('en-US', options).format(now);
+                    // Format Time
+                    const timeFormatter = new Intl.DateTimeFormat('en-US', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                        hour12: true,
+                        timeZone: 'Asia/Manila'
+                    });
+                    this.time = timeFormatter.format(now);
+                }
+            };
         }
-      };
-    }
-  </script>
+
+        // Add keyboard shortcuts for accessibility
+        document.addEventListener('keydown', function(e) {
+            if (e.key >= '1' && e.key <= '4') {
+                const links = document.querySelectorAll('a[href*="/kiosk/requirements"]');
+                const index = parseInt(e.key) - 1;
+                if (links[index]) {
+                    e.preventDefault();
+                    links[index].click();
+                }
+            }
+        });
+    </script>
 </body>
 </html>

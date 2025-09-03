@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Non-Property Holdings Requirements</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  @vite(['resources/css/app.css', 'resources/js/app.js'])
   <script src="https://unpkg.com/alpinejs" defer></script>
 </head>
 <body class="m-0 p-0 bg-gray-100">
@@ -12,6 +12,14 @@
   <!-- Background Section -->
   <section class="relative h-screen bg-cover bg-center bg-no-repeat" style="background-image: url('{{ asset('img/bgbackground2.jpg') }}')">
     <div class="absolute inset-0 bg-gray-700/60 z-0"></div>
+
+        <!-- Back Button -->
+    <button 
+      onclick="window.history.back()" 
+      class="absolute top-12 left-12 z-20 bg-amber-600 hover:bg-amber-700 text-white font-bold px-6 py-3 rounded-lg shadow-lg transition-all duration-200"
+    >
+      ← BACK
+    </button>
 
     <div class="relative z-10 flex items-center justify-center h-full px-4">
       <div class="w-full max-w-4xl h-[90vh] bg-[#f5f5f4] border border-white rounded-2xl p-6 shadow-xl flex flex-col overflow-hidden">

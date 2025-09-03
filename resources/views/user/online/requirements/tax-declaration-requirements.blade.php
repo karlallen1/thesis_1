@@ -4,7 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Tax Declaration Requirements</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="icon" href="{{ asset('img/mainlogo.png') }}" type="image/png">
+  @vite(['resources/css/app.css', 'resources/js/app.js'])
   <script src="https://unpkg.com/alpinejs" defer></script>
 </head>
 <body class="m-0 p-0 bg-gray-100">
@@ -91,14 +92,13 @@
 
      return {
   requirements: [
-    'Barangay Clearance <span class="opacity-70">(MUST BE VALID FOR SIX MONTHS FROM DATE ISSUED)</span>',
-    'Cedula <span class="opacity-70">(COMMUNITY TAX CERTIFICATE, ONE YEAR VALID FROM DATE ISSUED)</span>',
-    'Valid ID <span class="opacity-70">(GOVERNMENT-ISSUED, NOT EXPIRED)</span>',
-    'Tax Declaration',
-    'Proof of Ownership', 
-    'TCT / Deed of Sale',
-    'Certificate of Occupancy',
-    'Latest Tax Receipt <span class="opacity-70">(FIVE (5) YEARS FROM THE DATE OF THE ATP)</span>',
+    'Request for Issuance of Updated Tax Declaration form',
+    'Title (Certified True Xerox Copy)',
+    'Updated Real Property Tax Payment (Amilyar) ',
+    'Latest Tax Declaration (TD/OHA)', 
+    'Deed of Sale/ Extra Judicial Settlement/ Partition Agreement',
+    'Transfer Tax Receipt',
+    'Certificate Authorizing Registration (CAR) from BIR (Bureau of Internal Revenue)',
   ],
         checked: [],
         showReminder: false,

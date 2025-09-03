@@ -3,8 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Tax Declaration Requirements</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <title>Property Holdings Requirements</title>
+  <link rel="icon" href="{{ asset('img/mainlogo.png') }}" type="image/png">
+  @vite(['resources/css/app.css', 'resources/js/app.js'])
   <script src="https://unpkg.com/alpinejs" defer></script>
 </head>
 <body class="m-0 p-0 bg-gray-100">
@@ -91,15 +92,15 @@
 
       return {
         requirements: [
-          'Barangay Clearance',
-          'Cedula (Community Tax Certificate)',
+          'Letter Request',
+          'Proof of Ownership (TCT/OCT/CCT)',
           'Valid ID (Government-issued)',
-          'Tax Declaration',
-          'Proof of Ownership',
-          'TCT / Deed of Sale',
-          'Certificate of Occupancy',
-          'Latest Tax Receipt',
-          'Lhat',
+          'Deed of Conveyance',
+          'Certificate Authorizing Registration (CAR)',
+          'Latest Real Property Tax Receipt/Tax Clearance (Amilyar/Tax Clearance)',
+          'Transfer Tax Receipt',
+          'Pictures of the Property/Structure',
+          'Transfer Fee Receipt',
         ],
         checked: [],
         showReminder: false,

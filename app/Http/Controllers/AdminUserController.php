@@ -12,74 +12,99 @@ class AdminUserController extends Controller
 {
     public function index()
     {
-        if (session('role') !== 'main_admin') {
+        $currentUser = $this->getCurrentUser();
+        if (!$currentUser || !in_array($currentUser->role, ['super_admin', 'admin'])) {
             return response()->json(['error' => 'Unauthorized access'], 403);
         }
 
         try {
-            $admins = Admin::select('id', 'username', 'role')->get();
+            $query = Admin::select('id', 'username', 'role', 'is_seeded');
 
-            // ✅ Log to database - JSON encode details
+            if ($currentUser->isSuperAdmin()) {
+                $admins = $query->get();
+            } else {
+                $admins = $query->where('role', 'staff')->get();
+            }
+
+            $admins = $admins->map(function ($admin) use ($currentUser) {
+                return [
+                    'id' => $admin->id,
+                    'username' => $admin->username,
+                    'role' => $admin->role,
+                    'role_display' => $admin->getRoleDisplayAttribute(),
+                    'is_seeded' => $admin->is_seeded,
+                    'can_edit' => $currentUser->canManage($admin),
+                    'can_delete' => $currentUser->canDelete($admin),
+                    'can_change_password' => $currentUser->canChangePassword($admin),
+                ];
+            });
+
             SystemLog::create([
                 'type' => 'ACCOUNT',
                 'user' => session('username'),
-                'action' => 'Viewed user list',
-                'details' => null, // or json_encode(['count' => $admins->count()])
+                'action' => 'VIEWED_USER_LIST',
+                'details' => json_encode(['count' => $admins->count()]),
                 'status' => 'SUCCESS',
             ]);
 
             return response()->json($admins);
         } catch (\Exception $e) {
-            // ✅ Log failure - JSON encode details
             SystemLog::create([
                 'type' => 'ACCOUNT',
                 'user' => session('username') ?? 'Unknown',
-                'action' => 'Failed to fetch user list',
-                'details' => json_encode(['error' => $e->getMessage()]), // ✅ JSON encode
+                'action' => 'FAILED_TO_FETCH_USER_LIST',
+                'details' => json_encode(['error' => $e->getMessage()]),
                 'status' => 'FAILED',
             ]);
-
             return response()->json(['error' => 'Failed to fetch users'], 500);
         }
     }
 
     public function store(Request $request)
     {
-        if (session('role') !== 'main_admin') {
+        $currentUser = $this->getCurrentUser();
+        if (!$currentUser || !in_array($currentUser->role, ['super_admin', 'admin'])) {
             return response()->json(['error' => 'Unauthorized access'], 403);
         }
 
+        $allowedRoles = $currentUser->getManageableRoles();
         $validator = Validator::make($request->all(), [
             'username' => 'required|string|unique:admins,username|min:3|max:50|regex:/^[a-zA-Z0-9_-]+$/',
             'password' => 'required|string|min:6|max:255',
-            'role'     => 'required|in:main_admin,staff',
+            'role' => 'required|in:' . implode(',', $allowedRoles),
         ], [
             'username.regex' => 'Username can only contain letters, numbers, underscores, and hyphens.',
             'username.unique' => 'This username is already taken.',
             'password.min' => 'Password must be at least 6 characters long.',
+            'role.in' => 'You do not have permission to create this role.',
         ]);
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
+        if (!in_array($request->role, $allowedRoles)) {
+            return response()->json(['error' => 'You do not have permission to create this role'], 403);
+        }
+
         try {
             $admin = Admin::create([
                 'username' => trim($request->username),
                 'password' => Hash::make($request->password),
-                'role'     => $request->role,
+                'role' => $request->role,
+                'is_seeded' => false,
             ]);
 
-            // ✅ Log success - JSON encode details
             SystemLog::create([
                 'type' => 'ACCOUNT',
                 'user' => session('username'),
-                'action' => 'Created new admin account',
+                'action' => 'ACCOUNT_CREATE',
                 'details' => json_encode([
                     'new_user_id' => $admin->id,
                     'username' => $admin->username,
                     'role' => $admin->role,
-                ]), // ✅ JSON encode
+                    'created_by_role' => $currentUser->role,
+                ]),
                 'status' => 'SUCCESS',
             ]);
 
@@ -88,40 +113,37 @@ class AdminUserController extends Controller
                 'admin' => [
                     'id' => $admin->id,
                     'username' => $admin->username,
-                    'role' => $admin->role
+                    'role' => $admin->role,
+                    'role_display' => $admin->getRoleDisplayAttribute(),
                 ]
             ], 201);
         } catch (\Exception $e) {
-            // ✅ Log failure - JSON encode details
             SystemLog::create([
                 'type' => 'ACCOUNT',
                 'user' => session('username') ?? 'Unknown',
-                'action' => 'Account creation failed',
-                'details' => json_encode(['error' => $e->getMessage()]), // ✅ JSON encode
+                'action' => 'ACCOUNT_CREATE_FAILED',
+                'details' => json_encode(['error' => $e->getMessage()]),
                 'status' => 'FAILED',
             ]);
-
             return response()->json(['error' => 'Failed to create account'], 500);
         }
     }
 
     public function updatePassword(Request $request, $id)
     {
+        $currentUser = $this->getCurrentUser();
+        if (!$currentUser) {
+            return response()->json(['error' => 'Unauthorized access'], 403);
+        }
+
         try {
-            $admin = Admin::findOrFail($id);
+            $targetAdmin = Admin::findOrFail($id);
         } catch (\Exception $e) {
             return response()->json(['error' => 'User not found'], 404);
         }
 
-        $currentRole = session('role');
-        $currentUserId = session('admin_id');
-
-        if ($currentRole !== 'main_admin' && $currentUserId != $id) {
-            return response()->json(['error' => 'Unauthorized access'], 403);
-        }
-
-        if ($admin->role === 'main_admin' && $currentRole !== 'main_admin' && $currentUserId != $id) {
-            return response()->json(['error' => 'Cannot modify main administrator account'], 403);
+        if (!$currentUser->canChangePassword($targetAdmin)) {
+            return response()->json(['error' => 'You do not have permission to change this password'], 403);
         }
 
         $validator = Validator::make($request->all(), [
@@ -135,70 +157,64 @@ class AdminUserController extends Controller
         }
 
         try {
-            $admin->update([
-                'password' => Hash::make($request->password),
-            ]);
-
-            // ✅ Log password update - JSON encode details
+            $targetAdmin->update(['password' => Hash::make($request->password)]);
             SystemLog::create([
                 'type' => 'ACCOUNT',
                 'user' => session('username'),
-                'action' => 'Updated password',
+                'action' => 'PASSWORD_CHANGE',
                 'details' => json_encode([
-                    'target_user' => $admin->username,
-                    'self_update' => $currentUserId == $id,
-                ]), // ✅ JSON encode
+                    'target_user' => $targetAdmin->username,
+                    'target_role' => $targetAdmin->role,
+                    'self_update' => $currentUser->id == $targetAdmin->id,
+                ]),
                 'status' => 'SUCCESS',
             ]);
-
             return response()->json(['message' => 'Password updated successfully.']);
         } catch (\Exception $e) {
             SystemLog::create([
                 'type' => 'ACCOUNT',
                 'user' => session('username') ?? 'Unknown',
-                'action' => 'Password update failed',
-                'details' => json_encode(['error' => $e->getMessage()]), // ✅ JSON encode
+                'action' => 'PASSWORD_CHANGE_FAILED',
+                'details' => json_encode(['error' => $e->getMessage()]),
                 'status' => 'FAILED',
             ]);
-
             return response()->json(['error' => 'Failed to update password'], 500);
         }
     }
 
     public function destroy($id)
     {
-        if (session('role') !== 'main_admin') {
+        $currentUser = $this->getCurrentUser();
+        if (!$currentUser) {
             return response()->json(['error' => 'Unauthorized access'], 403);
         }
 
         try {
-            $admin = Admin::findOrFail($id);
+            $targetAdmin = Admin::findOrFail($id);
         } catch (\Exception $e) {
             return response()->json(['error' => 'User not found'], 404);
         }
 
-        if ($admin->role === 'main_admin') {
-            return response()->json(['error' => 'Main administrator accounts cannot be deleted'], 403);
-        }
-
-        if ($admin->id == session('admin_id')) {
-            return response()->json(['error' => 'You cannot delete your own account'], 403);
+        if (!$currentUser->canDelete($targetAdmin)) {
+            $reason = $targetAdmin->isSeededAdmin() && $targetAdmin->isSuperAdmin()
+                ? 'The original super admin account cannot be deleted'
+                : 'You do not have permission to delete this account';
+            return response()->json(['error' => $reason], 403);
         }
 
         try {
-            $deletedUsername = $admin->username;
-            $deletedRole = $admin->role; // Store role before deletion
-            $admin->delete();
+            $deletedUsername = $targetAdmin->username;
+            $deletedRole = $targetAdmin->role;
+            $targetAdmin->delete();
 
-            // ✅ Log deletion - JSON encode details
             SystemLog::create([
                 'type' => 'ACCOUNT',
                 'user' => session('username'),
-                'action' => 'Deleted admin account',
+                'action' => 'ACCOUNT_DELETE',
                 'details' => json_encode([
                     'deleted_user' => $deletedUsername,
-                    'role' => $deletedRole,
-                ]), // ✅ JSON encode
+                    'deleted_role' => $deletedRole,
+                ]),
                 'status' => 'SUCCESS',
             ]);
 
@@ -207,12 +223,16 @@ class AdminUserController extends Controller
             SystemLog::create([
                 'type' => 'ACCOUNT',
                 'user' => session('username') ?? 'Unknown',
-                'action' => 'Account deletion failed',
-                'details' => json_encode(['error' => $e->getMessage()]), // ✅ JSON encode
+                'action' => 'ACCOUNT_DELETE_FAILED',
+                'details' => json_encode(['error' => $e->getMessage()]),
                 'status' => 'FAILED',
             ]);
-
             return response()->json(['error' => 'Failed to delete account'], 500);
         }
+    }
+
+    private function getCurrentUser()
+    {
+        return Admin::find(session('admin_id'));
     }
 }

@@ -6,8 +6,8 @@
     <title>Queue Confirmation - Welcome</title>
     <style>
         :root {
-            --primary-color: #1a73e8; /* Google Blue */
-            --success-color: #34a853; /* Google Green */
+            --primary-color: #1a73e8;
+            --success-color: #34a853;
             --background-color: #f8f9fa;
             --card-background: #ffffff;
             --text-primary: #202124;
@@ -113,42 +113,52 @@
             .confirmation-container {
                 padding: 30px 20px;
             }
-
-            h1 {
-                font-size: 1.5rem;
-            }
-
-            .queue-number-display {
-                font-size: 2.5rem;
-            }
+            h1 { font-size: 1.5rem; }
+            .queue-number-display { font-size: 2.5rem; }
         }
     </style>
 </head>
 <body>
     <div class="confirmation-container">
-        <div class="icon-success">✓</div>
-        <h1>Welcome!</h1>
-        <p class="subtitle">You have been added to the queue.</p>
+        @if ($success)
+            <div class="icon-success">✓</div>
+            <h1>Welcome!</h1>
+            <p class="subtitle">{{ $success_message }}</p>
 
-        <div class="info-group">
-            <span class="info-label">Name</span>
-            <span class="info-value">{{ $application->full_name }}</span>
-        </div>
+            @if ($application)
+                <div class="info-group">
+                    <span class="info-label">Name</span>
+                    <span class="info-value">{{ $application->full_name }}</span>
+                </div>
 
-        <div class="info-group">
-            <span class="info-label">Your Queue Number</span>
-            <div class="queue-number-display">{{ $application->queue_number }}</div>
-        </div>
+                <div class="info-group">
+                    <span class="info-label">Your Queue Number</span>
+                    <div class="queue-number-display">{{ $application->queue_number }}</div>
+                </div>
 
-        <div class="info-group">
-            <span class="info-label">Service Requested</span>
-            <span class="info-value service-type">{{ $application->service_type }}</span>
-        </div>
-        
-        <p class="instructions">
-            Please wait for your number to be called. You will be served in order.
-            {{ $success_message }}
-        </p>
+                <div class="info-group">
+                    <span class="info-label">Service Requested</span>
+                    <span class="info-value service-type">{{ $application->service_type }}</span>
+                </div>
+
+                @if ($application->isPriority())
+                    <div style="background: #fff3cd; color: #856404; padding: 10px; border-radius: 8px; margin: 15px 0;">
+                        <strong>Priority:</strong> {{ ucfirst($application->getPriorityType()) }}
+                    </div>
+                @endif
+            @endif
+
+            <p class="instructions">
+                Please wait for your number to be called. You will be served in order.
+            </p>
+        @else
+            <div class="icon-success" style="color: #d93025;">⚠️</div>
+            <h1>Queue Entry Failed</h1>
+            <p class="subtitle">{{ $success_message }}</p>
+            <p style="color: #666;">
+                Please try scanning again or see the staff for assistance.
+            </p>
+        @endif
     </div>
 </body>
 </html>

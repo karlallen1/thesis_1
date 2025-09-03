@@ -3,90 +3,201 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>User Management - Admin Dashboard</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>User Management - Admin Panel</title>
+    <link rel="icon" href="{{ asset('img/mainlogo.png') }}" type="image/png">
+    <!-- Tailwind CSS -->
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- CSRF Token -->
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <style>
-        .font-georgia { font-family: Georgia, 'Times New Roman', Times, serif; }
-        .animate-fadeIn {
-            animation: fadeIn 0.3s ease-out;
+        .font-georgia { 
+            font-family: Georgia, 'Times New Roman', Times, serif; 
         }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
+        
+        body {
+            font-family: Georgia, 'Times New Roman', Times, serif;
+            background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 50%, #e5e7eb 100%);
+        }
+        
+        .sidebar-glass {
+            background: rgba(27, 60, 83, 0.98);
+            backdrop-filter: blur(20px);
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 8px 0 32px rgba(0, 0, 0, 0.1);
+        }
+        
+        .nav-link {
+            border-radius: 12px;
+            padding: 12px 16px;
+            margin: 4px 0;
+        }
+        
+        .nav-link:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .nav-link.active {
+            background: rgba(255, 255, 255, 0.15);
+            border-left: 4px solid #F59E0B;
+            font-weight: 600;
+        }
+        
+        .modal-overlay {
+            background: rgba(0, 0, 0, 0.5);
+        }
+        
+        .user-card {
+            transition: all 0.3s ease;
+        }
+        .user-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
         }
     </style>
-    <meta name="csrf-token" content="{{ csrf_token() }}">
 </head>
-<body class="bg-[#F9F3EF] min-h-screen flex">
-    <!-- Sidebar -->
-    <aside class="text-white w-64 flex flex-col min-h-screen border-r border-gray-100" style="background-color: #1B3C53;">
+<body class="min-h-screen">
+    <div class="flex min-h-screen">
+        <!-- Sidebar -->
+        <aside class="w-64 sidebar-glass text-white flex flex-col fixed h-full z-40">
             <!-- Top Section -->
-            <div class="p-6 border-b border-[#244C66]">
-                <h1 class="text-2xl font-georgia font-bold">
-                        @if(session('role') === 'main_admin')
+            <div class="p-6 border-b border-white/10">
+                <div class="flex items-center space-x-3 mb-4">
+                    <img src="{{ asset('img/mainlogo.png') }}" alt="City Hall Logo" class="w-10 h-10 object-contain" />
+                    <h1 class="text-xl font-georgia font-bold">
+                        @if(session('role') === 'admin' || session('role') === 'super_admin')
                             NCC Admin
                         @else
                             NCC Staff
                         @endif
-                </h1>
-                <p class="text-sm text-gray-300 mt-3">
-                    Welcome, {{ session('username') }}<br>
-                    <span class="text-xs bg-blue-600 px-2 py-1 rounded ml-2">
-                        {{ str_replace('_', ' ', ucwords(session('role'))) }}
+                    </h1>
+                </div>
+                <div class="text-sm text-gray-300">
+                    <p class="font-medium">Welcome, {{ session('username') }}</p>
+                    <span class="inline-block text-xs bg-amber-600 px-3 py-1 rounded-full mt-2 font-medium">
+                        {{ ucfirst(str_replace('_', ' ', session('role'))) }}
                     </span>
-                </p>
+                </div>
             </div>
+            
+            <!-- Navigation -->
+            <nav class="flex-1 px-4 py-6 space-y-2">
+                <a href="{{ route('admin.dashboard-main') }}" 
+                   class="nav-link block font-georgia text-white {{ request()->routeIs('admin.dashboard-main') ? 'active' : '' }}">
+                    <div class="flex items-center space-x-3">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                        </svg>
+                        <span>Dashboard</span>
+                    </div>
+                </a>
+                
+                @if(session('role') === 'admin' || session('role') === 'super_admin')
+                <a href="{{ route('admin.usermanagement') }}" 
+                   class="nav-link block font-georgia text-white {{ request()->routeIs('admin.usermanagement') ? 'active' : '' }}">
+                    <div class="flex items-center space-x-3">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"/>
+                        </svg>
+                        <span>User Management</span>
+                    </div>
+                </a>
+                @endif
+                
+                <a href="{{ route('admin.queuestatus') }}" 
+                   class="nav-link block font-georgia text-white {{ request()->routeIs('admin.queuestatus') ? 'active' : '' }}">
+                    <div class="flex items-center space-x-3">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                        </svg>
+                        <span>Queue Status</span>
+                    </div>
+                </a>
+                
+                @if(session('role') === 'admin' || session('role') === 'super_admin')
+                <a href="{{ route('admin.systemlogs') }}" 
+                   class="nav-link block font-georgia text-white {{ request()->routeIs('admin.systemlogs') ? 'active' : '' }}">
+                    <div class="flex items-center space-x-3">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        <span>System Logs</span>
+                    </div>
+                </a>
+                @endif
+            </nav>
 
+        </aside>
+        
+        <!-- Main Content -->
+        <main class="flex-1 flex flex-col ml-64">
+            <section class="px-8 py-6">
+                <div class="flex justify-between items-center mb-6">
+                    <div>
+                        <h2 class="text-3xl font-georgia font-bold text-gray-900 mb-2">User Management</h2>
+                        <p class="text-gray-600">Manage system accounts and permissions</p>
+                    </div>
+                    @if(session('role') === 'admin' || session('role') === 'super_admin')
+                    <button id="openAddModalBtn" class="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-5 py-2.5 rounded-xl font-georgia font-semibold transition shadow-lg flex items-center">
+                        <i class="fas fa-plus mr-2"></i> Add Account
+                    </button>
+                    @else
+                    <div class="text-sm text-gray-600 bg-yellow-100 px-4 py-2.5 rounded-lg flex items-center">
+                        <i class="fas fa-exclamation-triangle mr-2 text-yellow-700"></i>
+                        <span>View Only Access</span>
+                    </div>
+                    @endif
+                </div>
 
-        <!-- Navigation Links -->
-        <nav class="flex-1 px-8 py-6 space-y-6">
-            <a href="{{ route('admin.dashboard-main') }}" class="block text-xl font-georgia text-white transition {{ request()->routeIs('admin.dashboard-main') ? 'opacity-100 grayscale-0 underline' : 'opacity-50 grayscale hover:underline' }}">Dashboard</a>
-            @if(session('role') === 'main_admin')
-            <a href="{{ route('admin.usermanagement') }}" class="block text-xl font-georgia text-white transition {{ request()->routeIs('admin.usermanagement') ? 'opacity-100 grayscale-0 underline' : 'opacity-50 grayscale hover:underline' }}">User Management</a>
-            @endif
-            <a href="{{ route('admin.queuestatus') }}" class="block text-xl font-georgia text-white transition {{ request()->routeIs('admin.queuestatus') ? 'opacity-100 grayscale-0 underline' : 'opacity-50 grayscale hover:underline' }}">Queue Status</a>
-            <a href="{{ route('admin.systemlogs') }}" class="block text-xl font-georgia text-white transition {{ request()->routeIs('admin.systemlogs') ? 'opacity-100 grayscale-0 underline' : 'opacity-50 grayscale hover:underline' }}">System Logs</a>
-        </nav>
-    </aside>
+                <!-- Search Bar -->
+                <div class="mb-6">
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                            <i class="fas fa-search text-gray-400"></i>
+                        </div>
+                        <input type="text" id="searchInput" placeholder="Search by username..." class="pl-10 w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm">
+                    </div>
+                </div>
 
-    <main class="flex-1 flex flex-col bg-[#c0c0ca]">
-        <header class="px-8 py-4 border-b border-gray-300 bg-[#afafb4] flex justify-between items-center">
-            <h1 class="text-2xl font-georgia font-semibold">User Management</h1>
-            @if(session('role') === 'main_admin')
-            <button id="openAddModalBtn" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm font-semibold transition">+ Add Account</button>
-            @else
-            <div class="text-sm text-gray-600 bg-yellow-100 px-3 py-2 rounded">
-                <strong>Staff Access:</strong> View only - Contact Main Admin
-            </div>
-            @endif
-        </header>
-
-        <section class="px-8 py-6 space-y-4">
-            <div class="flex justify-between items-center">
-                <input type="text" id="searchInput" placeholder="Search by username..." class="px-4 py-2 border rounded w-1/2 focus:outline-none focus:ring-2 focus:ring-[#1B3C53]" />
-            </div>
-            <div class="bg-white rounded-xl shadow overflow-hidden">
-                <table class="w-full">
-                    <thead class="bg-gray-50 border-b">
-                        <tr>
-                            <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Username</th>
-                            <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Role</th>
-                            @if(session('role') === 'main_admin')
-                            <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Actions</th>
-                            @endif
-                        </tr>
-                    </thead>
-                    <tbody id="userTableBody"></tbody>
-                </table>
-            </div>
-        </section>
-    </main>
-
+                <!-- User List -->
+                <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th scope="col" class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Username</th>
+                                    <th scope="col" class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                                    <th scope="col" class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                    @if(session('role') === 'admin' || session('role') === 'super_admin')
+                                    <th scope="col" class="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                    @endif
+                                </tr>
+                            </thead>
+                            <tbody id="userTableBody" class="bg-white divide-y divide-gray-200">
+                                <!-- User rows will be populated here -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Empty State -->
+                    <div id="emptyState" class="py-12 text-center hidden">
+                        <div class="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                            <i class="fas fa-users text-3xl text-gray-400"></i>
+                        </div>
+                        <h3 class="text-lg font-medium text-gray-900 mb-1">No users found</h3>
+                        <p class="text-gray-500">Try adjusting your search or add a new account</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+    
     <div id="modals"></div>
 
     <script>
         const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-        const baseURL = "{{ route('admin.users.index') }}"; // → /admin/users
+        const baseURL = "{{ route('admin.users.index') }}";
         const currentUserRole = "{{ session('role') }}";
 
         async function safeFetch(url, options = {}) {
@@ -117,14 +228,9 @@
                         const errorData = await response.json();
                         errorMessage = errorData.message || Object.values(errorData.errors || {}).flat().join(', ') || errorMessage;
                     } catch (e) {
-                        // If we can't parse JSON, use the status text
-                        if (response.status === 404) {
-                            errorMessage = 'Resource not found';
-                        } else if (response.status === 422) {
-                            errorMessage = 'Invalid data provided';
-                        } else if (response.status === 500) {
-                            errorMessage = 'Server error occurred';
-                        }
+                        if (response.status === 404) errorMessage = 'Resource not found';
+                        else if (response.status === 422) errorMessage = 'Invalid data provided';
+                        else if (response.status === 500) errorMessage = 'Server error occurred';
                     }
                     throw new Error(errorMessage);
                 }
@@ -137,49 +243,78 @@
         }
 
         function loadUsers() {
-            @if(session('role') === 'main_admin')
+            @if(session('role') === 'admin' || session('role') === 'super_admin')
             safeFetch(baseURL)
                 .then(data => {
-                    console.log('Loaded users:', data); // Debug log
+                    console.log('Loaded users:', data);
                     const search = document.getElementById('searchInput').value.toLowerCase();
                     const filtered = data.filter(u => u.username.toLowerCase().includes(search));
                     const tbody = document.getElementById('userTableBody');
+                    const emptyState = document.getElementById('emptyState');
                     
                     if (filtered.length === 0) {
-                        tbody.innerHTML = `
-                            <tr><td colspan="3" class="px-6 py-8 text-center text-gray-500">
-                                <div class="text-lg font-georgia">No users found</div>
-                                <div class="text-sm mt-2">Try adjusting your search</div>
-                            </td></tr>`;
+                        tbody.innerHTML = '';
+                        emptyState.classList.remove('hidden');
                         return;
                     }
                     
+                    emptyState.classList.add('hidden');
                     tbody.innerHTML = filtered.map(u => `
-                        <tr class="border-b hover:bg-gray-50">
-                            <td class="px-6 py-3">${u.username}</td>
-                            <td class="px-6 py-3">
-                                <span class="capitalize px-2 py-1 rounded text-xs font-semibold
-                                    ${u.role === 'main_admin' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'}">
-                                    ${u.role.replace('_', ' ')}
-                                </span>
-                            </td>
-                            <td class="px-6 py-3 space-x-3">
-                                <button onclick="openChangePw('${u.id}', '${u.username}')" class="text-blue-600 hover:underline text-sm">Change Password</button>
-                                ${u.role !== 'main_admin' ? `
-                                <button onclick="confirmDelete('${u.id}', '${u.username}')" class="text-red-600 hover:underline text-sm">Delete</button>
-                                ` : '<span class="text-gray-400 text-sm">Protected</span>'}
-                            </td>
-                        </tr>
+                        <tr class="user-card hover:bg-gray-50 transition-all">
+    <td class="px-6 py-4 whitespace-nowrap">
+        <div class="flex items-center">
+            <div class="flex-shrink-0 h-10 w-10 flex items-center justify-center">
+                <img src="${u.role === 'super_admin' ? '{{ asset("img/superadmin.png") }}' : 
+                        u.role === 'admin' ? '{{ asset("img/admin.png") }}' : 
+                        '{{ asset("img/staff.png") }}'}" 
+                     alt="${u.role}" 
+                     class="h-10 w-10 rounded-full object-cover object-center border-2 border-white shadow-sm">
+            </div>
+            <div class="ml-4">
+                <div class="text-sm font-medium text-gray-900">${u.username}</div>
+            </div>
+        </div>
+    </td>
+    <td class="px-6 py-4 whitespace-nowrap">
+        <span class="capitalize px-3 py-1 rounded-full text-xs font-semibold
+            ${u.role === 'super_admin' ? 'bg-purple-100 text-purple-800' :
+              u.role === 'admin' ? 'bg-red-100 text-red-800' :
+              'bg-blue-100 text-blue-800'}">
+            ${u.role.replace('_', ' ')}
+        </span>
+    </td>
+    <td class="px-6 py-4 whitespace-nowrap">
+        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+            Active
+        </span>
+    </td>
+    @if(session('role') === 'admin' || session('role') === 'super_admin')
+    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+        <div class="flex justify-end space-x-3">
+            <button onclick="openChangePw('${u.id}', '${u.username}')" class="text-blue-600 hover:text-blue-900 flex items-center">
+                <i class="fas fa-key mr-1"></i> Change
+            </button>
+            ${u.can_delete ? `
+            <button onclick="confirmDelete('${u.id}', '${u.username}')" class="text-red-600 hover:text-red-900 flex items-center">
+                <i class="fas fa-trash-alt mr-1"></i> Delete
+            </button>
+            ` : '<span class="text-gray-400 flex items-center"><i class="fas fa-lock mr-1"></i> Protected</span>'}
+        </div>
+    </td>
+    @endif
+</tr>
                     `).join('');
                 })
                 .catch(err => {
                     console.error('Load failed:', err);
                     const tbody = document.getElementById('userTableBody');
                     tbody.innerHTML = `
-                        <tr><td colspan="3" class="px-6 py-8 text-center text-red-500">
-                            <div class="text-lg font-georgia">Error loading users</div>
-                            <div class="text-sm mt-2">${err.message}</div>
-                        </td></tr>`;
+                        <tr>
+                            <td colspan="4" class="px-6 py-8 text-center text-red-500">
+                                <div class="text-lg font-georgia">Error loading users</div>
+                                <div class="text-sm mt-2">${err.message}</div>
+                            </td>
+                        </tr>`;
                     
                     if (err.message.includes('expired')) {
                         alert('Session expired. Please log in again.');
@@ -190,26 +325,42 @@
                 });
             @else
             document.getElementById('userTableBody').innerHTML = `
-                <tr><td colspan="2" class="px-6 py-8 text-center text-gray-500">
-                    <div class="text-lg font-georgia">Staff Access Limited</div>
-                    <div class="text-sm mt-2">Contact Main Admin to manage accounts</div>
-                </td></tr>`;
+                <tr>
+                    <td colspan="3" class="px-6 py-8 text-center text-gray-500">
+                        <div class="text-lg font-georgia">Staff Access Limited</div>
+                        <div class="text-sm mt-2">Contact Admin to manage accounts</div>
+                    </td>
+                </tr>`;
             @endif
         }
 
         function openChangePw(id, username) {
             const html = `
-                <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 animate-fadeIn">
-                    <div class="bg-white p-6 rounded-xl shadow-xl w-full max-w-md">
-                        <h2 class="text-xl font-georgia font-semibold mb-4">Change Password</h2>
+                <div class="fixed inset-0 modal-overlay flex items-center justify-center z-50 animate-fadeIn">
+                    <div class="bg-white p-6 rounded-2xl shadow-xl w-full max-w-md">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-xl font-georgia font-semibold">Change Password</h2>
+                            <button onclick="closeModal()" class="text-gray-500 hover:text-gray-700">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <p class="mb-4 text-sm text-gray-600">For: <strong>${username}</strong></p>
                         <form onsubmit="event.preventDefault(); updatePassword('${id}');">
-                            <p class="mb-4 text-sm text-gray-600">For: <strong>${username}</strong></p>
-                            <input type="password" id="newPw" placeholder="New password (min 6)"
-                                   class="w-full border rounded px-3 py-2 mb-4 focus:outline-none focus:ring-2 focus:ring-[#1B3C53]"
-                                   minlength="6" required />
+                            <div class="mb-4">
+                                <label class="block text-gray-700 text-sm font-medium mb-2" for="newPw">
+                                    New Password
+                                </label>
+                                <input type="password" id="newPw" placeholder="Enter new password"
+                                       class="w-full border rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                       minlength="6" required />
+                            </div>
                             <div class="flex justify-end gap-3">
-                                <button type="button" onclick="closeModal()" class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded text-sm">Cancel</button>
-                                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm">Update</button>
+                                <button type="button" onclick="closeModal()" class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2.5 rounded-lg text-sm font-medium transition">
+                                    Cancel
+                                </button>
+                                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition">
+                                    Update Password
+                                </button>
                             </div>
                         </form>
                     </div>
@@ -219,20 +370,17 @@
 
         function updatePassword(id) {
             const pw = document.getElementById('newPw').value;
-            if (pw.length < 6) return showNotification('Min 6 chars', 'error');
+            if (pw.length < 6) return showNotification('Password must be at least 6 characters', 'error');
 
-            // Use correct password update route
             safeFetch(`${baseURL}/${id}/password`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    password: pw
-                })
+                body: JSON.stringify({ password: pw })
             })
             .then(() => {
                 closeModal();
                 loadUsers();
-                showNotification('Password updated!', 'success');
+                showNotification('Password updated successfully!', 'success');
             })
             .catch(err => {
                 console.error('Password update error:', err);
@@ -242,13 +390,22 @@
 
         function confirmDelete(id, username) {
             const html = `
-                <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 animate-fadeIn">
-                    <div class="bg-white p-6 rounded-xl shadow-xl w-full max-w-md">
-                        <h2 class="text-xl font-georgia font-semibold mb-4">Delete Account</h2>
-                        <p class="mb-6 text-gray-600">Delete <strong>${username}</strong>? This cannot be undone.</p>
+                <div class="fixed inset-0 modal-overlay flex items-center justify-center z-50 animate-fadeIn">
+                    <div class="bg-white p-6 rounded-2xl shadow-xl w-full max-w-md">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-xl font-georgia font-semibold">Delete Account</h2>
+                            <button onclick="closeModal()" class="text-gray-500 hover:text-gray-700">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <p class="mb-6 text-gray-600">Are you sure you want to delete <strong>${username}</strong>? This action cannot be undone.</p>
                         <div class="flex justify-end gap-3">
-                            <button onclick="closeModal()" class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded text-sm">Cancel</button>
-                            <button onclick="deleteUser('${id}')" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded text-sm">Delete</button>
+                            <button onclick="closeModal()" class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2.5 rounded-lg text-sm font-medium transition">
+                                Cancel
+                            </button>
+                            <button onclick="deleteUser('${id}')" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition">
+                                Delete Account
+                            </button>
                         </div>
                     </div>
                 </div>`;
@@ -263,7 +420,7 @@
             .then(() => {
                 closeModal();
                 loadUsers();
-                showNotification('User deleted!', 'success');
+                showNotification('User deleted successfully!', 'success');
             })
             .catch(err => {
                 console.error('Delete error:', err);
@@ -275,25 +432,49 @@
             document.getElementById("modals").innerHTML = "";
         }
 
-        @if(session('role') === 'main_admin')
+        @if(session('role') === 'admin' || session('role') === 'super_admin')
         document.getElementById('openAddModalBtn').addEventListener('click', () => {
             const html = `
-                <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 animate-fadeIn">
-                    <div class="bg-white p-6 rounded-xl shadow-xl w-full max-w-md">
-                        <h2 class="text-xl font-georgia font-semibold mb-4">Add New Account</h2>
+                <div class="fixed inset-0 modal-overlay flex items-center justify-center z-50 animate-fadeIn">
+                    <div class="bg-white p-6 rounded-2xl shadow-xl w-full max-w-md">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-xl font-georgia font-semibold">Add New Account</h2>
+                            <button onclick="closeModal()" class="text-gray-500 hover:text-gray-700">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
                         <form onsubmit="event.preventDefault(); createUser();">
                             <div class="space-y-4">
-                                <input type="text" id="addUsername" placeholder="Username" class="w-full border rounded px-3 py-2 focus:outline-none" required />
-                                <input type="password" id="addPassword" placeholder="Password (min 6)" class="w-full border rounded px-3 py-2 focus:outline-none" minlength="6" required />
-                                <select id="addRole" class="w-full border rounded px-3 py-2 focus:outline-none" required>
-                                    <option value="" disabled selected>Select Role</option>
-                                    <option value="main_admin">Main Admin</option>
-                                    <option value="staff">Staff</option>
-                                </select>
+                                <div>
+                                    <label class="block text-gray-700 text-sm font-medium mb-2" for="addUsername">
+                                        Username
+                                    </label>
+                                    <input type="text" id="addUsername" placeholder="Enter username" class="w-full border rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500" required />
+                                </div>
+                                <div>
+                                    <label class="block text-gray-700 text-sm font-medium mb-2" for="addPassword">
+                                        Password
+                                    </label>
+                                    <input type="password" id="addPassword" placeholder="Enter password (min 6)" class="w-full border rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500" minlength="6" required />
+                                </div>
+                                <div>
+                                    <label class="block text-gray-700 text-sm font-medium mb-2" for="addRole">
+                                        Role
+                                    </label>
+                                    <select id="addRole" class="w-full border rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                                        <option value="" disabled selected>Select Role</option>
+                                        <option value="admin">Admin</option>
+                                        <option value="staff">Staff</option>
+                                    </select>
+                                </div>
                             </div>
                             <div class="flex justify-end gap-3 mt-6">
-                                <button type="button" onclick="closeModal()" class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded text-sm">Cancel</button>
-                                <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm">Create</button>
+                                <button type="button" onclick="closeModal()" class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2.5 rounded-lg text-sm font-medium transition">
+                                    Cancel
+                                </button>
+                                <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition">
+                                    Create Account
+                                </button>
                             </div>
                         </form>
                     </div>
@@ -307,7 +488,7 @@
             const role = document.getElementById('addRole').value;
 
             if (password.length < 6) {
-                return showNotification('Password too short', 'error');
+                return showNotification('Password must be at least 6 characters', 'error');
             }
 
             safeFetch(baseURL, {
@@ -318,7 +499,7 @@
             .then(() => {
                 closeModal();
                 loadUsers();
-                showNotification('User created!', 'success');
+                showNotification('User created successfully!', 'success');
             })
             .catch(err => {
                 showNotification('Create failed: ' + err.message, 'error');
@@ -331,7 +512,7 @@
 
         function showNotification(message, type = 'success') {
             const notif = document.createElement('div');
-            notif.className = `fixed top-4 right-4 px-4 py-2 rounded text-white text-sm font-semibold z-50 transition-opacity duration-300 ${type === 'success' ? 'bg-green-600' : 'bg-red-600'}`;
+            notif.className = `fixed top-4 right-4 px-5 py-3 rounded-lg text-white text-sm font-medium z-50 shadow-lg transition-opacity duration-300 ${type === 'success' ? 'bg-green-600' : 'bg-red-600'}`;
             notif.textContent = message;
             document.body.appendChild(notif);
             setTimeout(() => notif.style.opacity = '0', 3000);
