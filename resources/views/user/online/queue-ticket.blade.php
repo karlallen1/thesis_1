@@ -4,74 +4,101 @@
     <title>Queue Ticket</title>
     <meta charset="UTF-8">
     <style>
+        @page {
+            margin: 0;
+            size: 80mm auto;
+        }
+
         body {
             font-family: 'Courier New', monospace;
             width: 80mm;
             margin: 0 auto;
-            padding: 15px 10px;
+            padding: 10px 10px;
             background: #fff;
-            font-size: 12px;
             text-align: center;
+            color: #000;
         }
+
+        .logo {
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 10px;
+        }
+
         .header {
-            font-weight: bold;
-            font-size: 1.2em;
-            margin-bottom: 8px;
-        }
-        .subheader {
-            font-size: 0.9em;
-            font-weight: normal;
-        }
-        .ticket-title {
-            font-size: 1.3em;
-            font-weight: bold;
-            margin: 10px 0;
-            text-decoration: underline;
-        }
-        .queue-number {
             font-size: 36px;
             font-weight: bold;
-            color: #000000;
+            margin: 5px 0;
+        }
+
+        .subheader {
+            font-size: 16px;
+            margin: 5px 0;
+        }
+
+        .ticket-title {
+            font-size: 40px;
+            font-weight: bold;
             margin: 15px 0;
         }
+
+        .queue-number {
+            font-size: 100px;
+            font-weight: bold;
+            margin: 25px 0;
+            letter-spacing: 2px;
+        }
+
         .divider {
-            border-top: 1px dashed #000;
-            margin: 12px 0;
+            border-top: 2px solid #000;
+            margin: 20px 0;
             width: 100%;
         }
+
         .info {
-            line-height: 1.8;
+            font-size: 20px;
+            line-height: 2.4;
             text-align: left;
-            max-width: 240px;
+            max-width: 270px;
             margin: 0 auto;
-            font-size: 13px;
+            font-weight: bold;
         }
-        .footer {
-            margin-top: 15px;
-            font-size: 11px;
-            color: #333;
-            border-top: 1px solid #000;
-            padding-top: 5px;
+
+        .info strong {
+            display: inline-block;
+            width: 90px;
         }
     </style>
     <script>
         window.onload = function() {
             window.print();
-            // Optional: close after print (only works in kiosk mode)
-            // setTimeout(window.close, 5000);
         };
     </script>
 </head>
 <body>
 
+    <!-- Logo: Embedded as Base64 -->
+    @php
+        $logoPath = public_path('img/mainlogo.png');
+        $logoData = '';
+        if (file_exists($logoPath)) {
+            $logoContent = file_get_contents($logoPath);
+            $logoData = 'data:image/png;base64,' . base64_encode($logoContent);
+        } else {
+            $logoData = ''; // Fallback
+        }
+    @endphp
+
+    @if($logoData)
+        <img src="{{ $logoData }}" class="logo" alt="Logo">
+    @endif
+
     <!-- Header -->
-    <div class="header">
-        NORTH CALOOCAN CITY HALL
-        <div class="subheader">Office of the Local Tax Assessor</div>
-    </div>
+    <div class="header">NORTH CALOOCAN</div>
+    <div class="subheader">City Hall</div>
 
     <!-- Title -->
-    <div class="ticket-title">QUEUE TICKET</div>
+    <div class="ticket-title">QUEUE</div>
 
     <!-- Divider -->
     <div class="divider"></div>
@@ -82,15 +109,11 @@
     <!-- Divider -->
     <div class="divider"></div>
 
-    <!-- Info Section -->
+    <!-- Info -->
     <div class="info">
-        <strong>NAME:</strong> {{ $application->full_name }}<br>
-        <strong>SERVICE:</strong> {{ $application->service_type }}
-    </div>
-
-    <!-- Footer -->
-    <div class="footer">
-        Please be ready when your number is called.
+        <strong>Name:</strong> {{ $application->full_name }}<br>
+        <strong>Service:<br>
+        </strong> {{ $application->service_type }}
     </div>
 
 </body>

@@ -99,7 +99,12 @@
 
       return {
         requirements: [
-          'KIOSK',
+          'Letter Request/Application Form',
+          'Valid ID of the property owner or representative',
+          'Real Property Tax Receipt ("Amilyar")/Tax Declaration',
+          // If applying as a Representative:
+          'Authorization Letter or SPA',
+          'Owners ID:',,
         ],
         checked: [],
         showReminder: false,

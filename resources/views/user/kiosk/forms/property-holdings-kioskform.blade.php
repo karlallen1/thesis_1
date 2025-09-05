@@ -7,6 +7,8 @@
   <meta name="csrf-token" content="{{ csrf_token() }}">
   @vite(['resources/css/app.css', 'resources/js/app.js'])
   <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+
+  <!-- Identical styles from Tax Declaration -->
   <style>
     body {
       font-family: 'Segoe UI', sans-serif;
@@ -74,7 +76,7 @@
       font-size: 1rem;
     }
 
-    .input-field, .date-input {
+    .input-field {
       width: 100%;
       padding: 0.75rem 1rem;
       font-size: 1rem;
@@ -85,13 +87,11 @@
       transition: all 0.2s ease;
     }
 
-    .input-field::placeholder,
-    .date-input::placeholder {
+    .input-field::placeholder {
       color: #9ca3af;
     }
 
-    .input-field:focus,
-    .date-input:focus {
+    .input-field:focus {
       outline: none;
       border-color: #3b82f6;
       box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
@@ -507,12 +507,12 @@
       <div class="section">
         <label x-text="translations[selectedLanguage].birthdate"></label>
         <div class="calendar-container">
-          <div class="calendar-input" @click="toggleCalendar()" style="position: relative;">
-            <span x-text="form.birthdate ? formatDateDisplay(form.birthdate) : 'Select your date of birth'" 
+          <div class="calendar-input" @click="toggleCalendar()">
+            <span x-text="form.birthdate ? formatDateDisplay(form.birthdate) : 'Select your date of birth'"
                   :class="{'text-gray-400': !form.birthdate, 'text-black': form.birthdate}"></span>
             <span style="position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); font-size: 1.2rem; pointer-events: none;">📅</span>
           </div>
-          
+
           <div x-show="showCalendar" x-transition class="calendar-dropdown" @click.outside="closeCalendar()">
             <div class="calendar-header">
               <button type="button" @click="previousMonth()" class="calendar-nav" :disabled="!canGoPrevious()">‹</button>
@@ -530,15 +530,15 @@
               </div>
               <button type="button" @click="nextMonth()" class="calendar-nav" :disabled="!canGoNext()">›</button>
             </div>
-            
+
             <div class="calendar-grid">
               <template x-for="day in ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']" :key="day">
                 <div class="calendar-day-header" x-text="day"></div>
               </template>
-              
+
               <template x-for="day in calendarDays" :key="day.key">
-                <button type="button" 
-                        @click="selectDate(day)" 
+                <button type="button"
+                        @click="selectDate(day)"
                         :disabled="!day.selectable"
                         :class="{
                           'calendar-day': true,
@@ -550,18 +550,18 @@
                 </button>
               </template>
             </div>
-            
+
             <div class="calendar-footer">
               <button type="button" @click="goToToday()" class="calendar-today-btn">Today</button>
               <button type="button" @click="closeCalendar()" class="calendar-close-btn">Done</button>
             </div>
           </div>
         </div>
-        
+
         <div x-show="calculatedAge && !isAgeValid" class="error-text">
           <span x-text="translations[selectedLanguage].ageError"></span>
         </div>
-        
+
         <div x-show="calculatedAge && isAgeValid" class="info-tip">
           <span>You are <strong x-text="calculatedAge"></strong> years old</span>
         </div>
@@ -649,20 +649,11 @@
     </div>
   </div>
 
-  <!-- Thank You Modal -->
-  <div x-show="thankYouModal" class="modal" x-transition>
-    <div class="modal-content">
-      <h2 class="modal-title" x-text="translations[selectedLanguage].thankYou"></h2>
-      <p class="modal-body" x-text="translations[selectedLanguage].thankYouMessage"></p>
-      <button @click="thankYouModal = false; resetForm(); window.location.href='/kiosk'" class="modal-btn">Complete</button>
-    </div>
-  </div>
-
   <!-- Queue Success Modal -->
   <div x-show="showQueueModal" x-transition class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
     <div class="bg-white p-6 rounded-xl shadow-lg w-full max-w-md text-center">
       <h2 class="text-2xl font-bold text-green-600 mb-2">Welcome to the Queue!</h2>
-      <p class="text-lg mb-4">Your ticket is printing...</p>
+      <p class="text-lg mb-4">Click below to print your ticket.</p>
       <div class="bg-gray-100 p-4 rounded-lg mb-4">
         <div class="text-sm text-gray-600">Your Queue Number</div>
         <div class="text-4xl font-bold text-blue-600 mt-1" x-text="queueNumber"></div>
@@ -671,9 +662,9 @@
         <span x-text="priorityType"></span> Priority
       </div>
       <button 
-          @click="showQueueModal = false; resetForm(); window.location.href='/kiosk'"
-          class="mt-6 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded">
-        Complete
+        @click="printAndComplete()"
+        class="mt-6 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded">
+        Print & Complete
       </button>
     </div>
   </div>
@@ -687,10 +678,9 @@
           birthdate: '', is_pwd: 'no', pwd_id: '', senior_id: '', service_type: ''
         },
         showingModal: false,
-        thankYouModal: false,
         showQueueModal: false,
         queueNumber: null,
-        applicationId: null, // ✅ Store application ID for printing
+        applicationId: null,
         isPriority: false,
         priorityType: '',
 
@@ -765,13 +755,8 @@
           const params = new URLSearchParams(window.location.search);
           this.form.service_type = params.get('service_type') || 'Property Holdings';
 
-          const today = new Date();
-          this.minBirthdate = new Date(today.getFullYear() - 100, 0, 1).toISOString().split('T')[0];
-          this.maxBirthdate = new Date(today.getFullYear() - 18, 11, 31).toISOString().split('T')[0];
-
           this.initializeCalendar();
           this.updateCalendar();
-
           this.startIdleTimer();
         },
 
@@ -798,12 +783,20 @@
           window.location.href = '/kiosk';
         },
 
+        getMaxEligibleDate() {
+          const maxDate = new Date();
+          maxDate.setFullYear(maxDate.getFullYear() - 18, 11, 31);
+          return maxDate;
+        },
+
         initializeCalendar() {
           const currentYear = new Date().getFullYear();
           const minYear = currentYear - 100;
           const maxYear = currentYear - 18;
           this.availableYears = [];
-          for (let year = maxYear; year >= minYear; year--) this.availableYears.push(year);
+          for (let year = maxYear; year >= minYear; year--) {
+            this.availableYears.push(year);
+          }
           this.calendarYear = maxYear;
         },
 
@@ -825,15 +818,13 @@
 
         updateCalendar() {
           const firstDay = new Date(this.calendarYear, this.calendarMonth, 1);
-          const lastDay = new Date(this.calendarYear, this.calendarMonth + 1, 0);
           const startDate = new Date(firstDay);
           startDate.setDate(startDate.getDate() - firstDay.getDay());
 
           const today = new Date();
           const selectedDate = this.form.birthdate ? new Date(this.form.birthdate) : null;
           const minDate = new Date(this.calendarYear - 100, 0, 1);
-          const maxDate = new Date();
-          maxDate.setFullYear(maxDate.getFullYear() - 18, 11, 31);
+          const maxDate = this.getMaxEligibleDate();
 
           this.calendarDays = [];
           for (let i = 0; i < 42; i++) {
@@ -842,7 +833,7 @@
             const isCurrentMonth = date.getMonth() === this.calendarMonth;
             const isToday = date.toDateString() === today.toDateString();
             const isSelected = selectedDate && date.toDateString() === selectedDate.toDateString();
-            const isSelectable = date >= minDate && date <= maxData;
+            const isSelectable = date >= minDate && date <= maxDate;
 
             this.calendarDays.push({
               day: date.getDate(),
@@ -864,11 +855,42 @@
           this.closeCalendar();
         },
 
-        previousMonth() { this.calendarMonth === 0 ? (this.calendarMonth = 11, this.calendarYear--) : this.calendarMonth--; this.updateCalendar(); },
-        nextMonth() { this.calendarMonth === 11 ? (this.calendarMonth = 0, this.calendarYear++) : this.calendarMonth++; this.updateCalendar(); },
-        canGoPrevious() { const minYear = new Date().getFullYear() - 100; return this.calendarYear > minYear || (this.calendarYear === minYear && this.calendarMonth > 0); },
-        canGoNext() { const maxYear = new Date().getFullYear() - 18; return this.calendarYear < maxYear || (this.calendarYear === maxYear && this.calendarMonth < 11); },
-        goToToday() { const today = new Date(); const maxDate = new Date(); maxDate.setFullYear(maxDate.getFullYear() - 18, 11, 31); if (today <= maxDate) { this.calendarMonth = today.getMonth(); this.calendarYear = today.getFullYear(); } else { this.calendarMonth = 11; this.calendarYear = maxDate.getFullYear(); } this.updateCalendar(); },
+        previousMonth() {
+          this.calendarMonth === 0
+            ? (this.calendarMonth = 11, this.calendarYear--)
+            : this.calendarMonth--;
+          this.updateCalendar();
+        },
+
+        nextMonth() {
+          this.calendarMonth === 11
+            ? (this.calendarMonth = 0, this.calendarYear++)
+            : this.calendarMonth++;
+          this.updateCalendar();
+        },
+
+        canGoPrevious() {
+          const minYear = new Date().getFullYear() - 100;
+          return this.calendarYear > minYear || (this.calendarYear === minYear && this.calendarMonth > 0);
+        },
+
+        canGoNext() {
+          const maxDate = this.getMaxEligibleDate();
+          return this.calendarYear < maxDate.getFullYear() || (this.calendarYear === maxDate.getFullYear() && this.calendarMonth < 11);
+        },
+
+        goToToday() {
+          const today = new Date();
+          const maxDate = this.getMaxEligibleDate();
+          if (today <= maxDate) {
+            this.calendarMonth = today.getMonth();
+            this.calendarYear = today.getFullYear();
+          } else {
+            this.calendarMonth = 11;
+            this.calendarYear = maxDate.getFullYear();
+          }
+          this.updateCalendar();
+        },
 
         formatDateDisplay(dateString) {
           if (!dateString) return '';
@@ -890,17 +912,47 @@
           if (!this.isSenior) this.form.senior_id = '';
         },
 
-        onPwdChange() { if (this.form.is_pwd !== 'yes') this.form.pwd_id = ''; },
-        autoFormatContact() { let raw = this.form.contact.replace(/\D/g, ''); if (raw.startsWith('63')) raw = raw.slice(2); if (raw.startsWith('0')) raw = raw.slice(1); raw = raw.slice(0, 10); let formatted = raw.replace(/(\d{3})(\d{3})(\d{4})/, (_, a, b, c) => `${a} ${b} ${c}`); this.form.contact = '+63 ' + formatted; },
-        validateContact() { const pattern = /^\+63\s\d{3}\s\d{3}\s\d{4}$/; this.isContactValid = pattern.test(this.form.contact); },
-        formatPWDId() { let raw = this.form.pwd_id.replace(/\W/g, '').toUpperCase(); let parts = [raw.slice(0, 2), raw.slice(2, 6), raw.slice(6, 9), raw.slice(9, 16)]; this.form.pwd_id = parts.filter(Boolean).join('-'); },
-        validateEmail() { const email = this.form.email.toLowerCase(); this.isEmailValid = email.endsWith('@gmail.com') || email.endsWith('@yahoo.com'); },
-        formatDate(dateString) { if (!dateString) return ''; const date = new Date(dateString); return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }); },
+        onPwdChange() {
+          if (this.form.is_pwd !== 'yes') this.form.pwd_id = '';
+        },
+
+        autoFormatContact() {
+          let raw = this.form.contact.replace(/\D/g, '');
+          if (raw.startsWith('63')) raw = raw.slice(2);
+          if (raw.startsWith('0')) raw = raw.slice(1);
+          raw = raw.slice(0, 10);
+          let formatted = raw.replace(/(\d{3})(\d{3})(\d{4})/, (_, a, b, c) => `${a} ${b} ${c}`);
+          this.form.contact = '+63 ' + formatted;
+        },
+
+        validateContact() {
+          const pattern = /^\+63\s\d{3}\s\d{3}\s\d{4}$/;
+          this.isContactValid = pattern.test(this.form.contact);
+        },
+
+        formatPWDId() {
+          let raw = this.form.pwd_id.replace(/\W/g, '').toUpperCase();
+          let parts = [raw.slice(0, 2), raw.slice(2, 6), raw.slice(6, 9), raw.slice(9, 16)];
+          this.form.pwd_id = parts.filter(Boolean).join('-');
+        },
+
+        validateEmail() {
+          const email = this.form.email.toLowerCase();
+          this.isEmailValid = email.endsWith('@gmail.com') || email.endsWith('@yahoo.com');
+        },
+
+        formatDate(dateString) {
+          if (!dateString) return '';
+          const date = new Date(dateString);
+          return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+        },
 
         resetForm() {
-          this.form = { email: '', contact: '', first_name: '', middle_name: '', last_name: '', birthdate: '', is_pwd: 'no', pwd_id: '', senior_id: '', service_type: 'Property Holdings' };
+          this.form = {
+            email: '', contact: '', first_name: '', middle_name: '', last_name: '',
+            birthdate: '', is_pwd: 'no', pwd_id: '', senior_id: '', service_type: 'Property Holdings'
+          };
           this.showingModal = false;
-          this.thankYouModal = false;
           this.showQueueModal = false;
           this.isEmailValid = true;
           this.isContactValid = true;
@@ -954,10 +1006,6 @@
               this.priorityType = data.priority_type || 'Regular';
               this.applicationId = data.application_id;
               this.showQueueModal = true;
-
-              // ✅ Auto-print ticket
-              this.printQueueTicket();
-
               this.resetIdleTimer();
             } else {
               alert(data.message || 'Submission failed');
@@ -968,14 +1016,27 @@
           }
         },
 
-        // ✅ Auto-print ticket after submission
-        printQueueTicket() {
-          if (!this.applicationId) return;
+        async printAndComplete() {
+          if (this.applicationId) {
+            try {
+              await fetch(`/user/online/print-ticket/${this.applicationId}`, {
+                method: 'POST',
+                headers: {
+                  'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                  'Content-Type': 'application/json'
+                }
+              });
+            } catch (err) {
+              console.warn('Print request failed:', err);
+            }
+          }
+          this.finalizeAndRedirect();
+        },
 
-          setTimeout(() => {
-            const printUrl = `/user/online/queue-ticket/${this.applicationId}`;
-            const printWindow = window.open(printUrl, 'PrintTicket', 'width=350,height=400');
-          }, 800);
+        finalizeAndRedirect() {
+          this.showQueueModal = false;
+          this.resetForm();
+          window.location.href = '/kiosk';
         }
       };
     }

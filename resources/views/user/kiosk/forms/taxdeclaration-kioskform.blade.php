@@ -649,20 +649,11 @@
     </div>
   </div>
 
-  <!-- Thank You Modal -->
-  <div x-show="thankYouModal" class="modal" x-transition>
-    <div class="modal-content">
-      <h2 class="modal-title" x-text="translations[selectedLanguage].thankYou"></h2>
-      <p class="modal-body" x-text="translations[selectedLanguage].thankYouMessage"></p>
-      <button @click="thankYouModal = false; resetForm(); window.location.href='/kiosk'" class="modal-btn">Complete</button>
-    </div>
-  </div>
-
   <!-- Queue Success Modal -->
   <div x-show="showQueueModal" x-transition class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
     <div class="bg-white p-6 rounded-xl shadow-lg w-full max-w-md text-center">
       <h2 class="text-2xl font-bold text-green-600 mb-2">Welcome to the Queue!</h2>
-      <p class="text-lg mb-4">Your ticket is printing...</p>
+      <p class="text-lg mb-4">Click below to print your ticket.</p>
       <div class="bg-gray-100 p-4 rounded-lg mb-4">
         <div class="text-sm text-gray-600">Your Queue Number</div>
         <div class="text-4xl font-bold text-blue-600 mt-1" x-text="queueNumber"></div>
@@ -671,314 +662,341 @@
         <span x-text="priorityType"></span> Priority
       </div>
       <button 
-          @click="showQueueModal = false; resetForm(); window.location.href='/kiosk'"
-          class="mt-6 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded">
-        Complete
+        @click="printAndComplete()"
+        class="mt-6 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded">
+        Print & Complete
       </button>
     </div>
   </div>
 
   <script>
-    function formApp() {
-      return {
-        // Form data
-        form: {
-          email: '', contact: '', first_name: '', middle_name: '', last_name: '',
-          birthdate: '', is_pwd: 'no', pwd_id: '', senior_id: '', service_type: ''
+  function formApp() {
+    return {
+      // Form data
+      form: {
+        email: '', contact: '', first_name: '', middle_name: '', last_name: '',
+        birthdate: '', is_pwd: 'no', pwd_id: '', senior_id: '', service_type: ''
+      },
+      showingModal: false,
+      showQueueModal: false,
+      queueNumber: null,
+      applicationId: null,
+      isPriority: false,
+      priorityType: '',
+
+      // Validation
+      isEmailValid: true,
+      isContactValid: true,
+      isAgeValid: true,
+      isSenior: false,
+      calculatedAge: null,
+
+      // Language
+      selectedLanguage: 'en',
+      translations: {
+        en: {
+          fullName: "Applicant Full Name",
+          middleName: "Middle Name (optional)",
+          birthdate: "Date of Birth",
+          email: "Email Address",
+          contact: "Contact Number",
+          pwdBeneficiary: "Are you a PWD Beneficiary?",
+          pwdId: "PWD ID",
+          pwdInfo: "PWD beneficiaries get priority in the queue",
+          seniorId: "Senior Citizen ID",
+          seniorInfo: "Providing your Senior ID gives you priority in the queue",
+          submitButton: "Submit Application",
+          reviewDetails: "Review Your Details",
+          thankYou: "Thank You!",
+          thankYouMessage: "Your application has been submitted successfully.",
+          ageError: "You must be at least 18 years old to submit this application.",
+          emailError: "Email must end with <strong>@gmail.com</strong> or <strong>@yahoo.com</strong>",
+          contactError: "Must follow +63 format with exactly 10 digits",
+          yes: "Yes",
+          no: "No",
+          serviceType: "Service Type:"
         },
-        showingModal: false,
-        thankYouModal: false,
-        showQueueModal: false,
-        queueNumber: null,
-        applicationId: null, // ✅ Store ID for printing
-        isPriority: false,
-        priorityType: '',
+        tl: {
+          fullName: "Buong Pangalan ng Tagapag-apply",
+          middleName: "Gitnang Pangalan (opsyonal)",
+          birthdate: "Petsa ng Kapanganakan",
+          email: "Address ng Email",
+          contact: "Numero ng Kontak",
+          pwdBeneficiary: "Ikaw ba ay isang PWD Beneficiary?",
+          pwdId: "PWD ID",
+          pwdInfo: "Ang mga PWD beneficiaries ay may priyoridad sa pila",
+          seniorId: "Senior Citizen ID",
+          seniorInfo: "Ang pagbibigay ng inyong Senior ID ay nagbibigay sa inyo ng priyoridad sa pila",
+          submitButton: "Isumite ang Aplikasyon",
+          reviewDetails: "Suriin ang Inyong Detalye",
+          thankYou: "Salamat!",
+          thankYouMessage: "Matagumpay na naisumite ang inyong aplikasyon.",
+          ageError: "Dapat ay hindi bababa sa 18 taong gulang upang isumite ang aplikasyon na ito.",
+          emailError: "Dapat magtatapos sa <strong>@gmail.com</strong> o <strong>@yahoo.com</strong>",
+          contactError: "Dapat sundin ang format na +63 at may eksaktong 10 digit",
+          yes: "Oo",
+          no: "Hindi",
+          serviceType: "Uri ng Serbisyo:"
+        }
+      },
 
-        // Validation
-        isEmailValid: true,
-        isContactValid: true,
-        isAgeValid: true,
-        isSenior: false,
-        calculatedAge: null,
+      // Calendar
+      showCalendar: false,
+      calendarMonth: new Date().getMonth(),
+      calendarYear: new Date().getFullYear(),
+      calendarDays: [],
+      availableYears: [],
+      months: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
 
-        // Language
-        selectedLanguage: 'en',
-        translations: {
-          en: {
-            fullName: "Applicant Full Name",
-            middleName: "Middle Name (optional)",
-            birthdate: "Date of Birth",
-            email: "Email Address",
-            contact: "Contact Number",
-            pwdBeneficiary: "Are you a PWD Beneficiary?",
-            pwdId: "PWD ID",
-            pwdInfo: "PWD beneficiaries get priority in the queue",
-            seniorId: "Senior Citizen ID",
-            seniorInfo: "Providing your Senior ID gives you priority in the queue",
-            submitButton: "Submit Application",
-            reviewDetails: "Review Your Details",
-            thankYou: "Thank You!",
-            thankYouMessage: "Your application has been submitted successfully.",
-            ageError: "You must be at least 18 years old to submit this application.",
-            emailError: "Email must end with <strong>@gmail.com</strong> or <strong>@yahoo.com</strong>",
-            contactError: "Must follow +63 format with exactly 10 digits",
-            yes: "Yes",
-            no: "No",
-            serviceType: "Service Type:"
-          },
-          tl: {
-            fullName: "Buong Pangalan ng Tagapag-apply",
-            middleName: "Gitnang Pangalan (opsyonal)",
-            birthdate: "Petsa ng Kapanganakan",
-            email: "Address ng Email",
-            contact: "Numero ng Kontak",
-            pwdBeneficiary: "Ikaw ba ay isang PWD Beneficiary?",
-            pwdId: "PWD ID",
-            pwdInfo: "Ang mga PWD beneficiaries ay may priyoridad sa pila",
-            seniorId: "Senior Citizen ID",
-            seniorInfo: "Ang pagbibigay ng inyong Senior ID ay nagbibigay sa inyo ng priyoridad sa pila",
-            submitButton: "Isumite ang Aplikasyon",
-            reviewDetails: "Suriin ang Inyong Detalye",
-            thankYou: "Salamat!",
-            thankYouMessage: "Matagumpay na naisumite ang inyong aplikasyon.",
-            ageError: "Dapat ay hindi bababa sa 18 taong gulang upang isumite ang aplikasyon na ito.",
-            emailError: "Dapat magtatapos sa <strong>@gmail.com</strong> o <strong>@yahoo.com</strong>",
-            contactError: "Dapat sundin ang format na +63 at may eksaktong 10 digit",
-            yes: "Oo",
-            no: "Hindi",
-            serviceType: "Uri ng Serbisyo:"
+      // Idle Timer
+      idleTimer: null,
+
+      init() {
+        const params = new URLSearchParams(window.location.search);
+        this.form.service_type = params.get('service_type') || 'Tax Declaration';
+
+        const today = new Date();
+        this.minBirthdate = new Date(today.getFullYear() - 100, 0, 1).toISOString().split('T')[0];
+        this.maxBirthdate = new Date(today.getFullYear() - 18, 11, 31).toISOString().split('T')[0];
+
+        this.initializeCalendar();
+        this.updateCalendar();
+
+        this.startIdleTimer();
+
+        // ✅ Safe CSRF log (for debugging only)
+        const csrfToken = document.querySelector('meta[name="csrf-token"]');
+        if (csrfToken) {
+          console.log('CSRF Token:', csrfToken.getAttribute('content'));
+        } else {
+          console.warn('CSRF Token not found');
+        }
+      },
+
+      startIdleTimer() {
+        this.resetIdleTimer();
+        ['mousemove', 'keydown', 'click', 'input'].forEach(event =>
+          document.addEventListener(event, this.resetIdleTimer)
+        );
+      },
+
+      resetIdleTimer: () => {
+        const self = document.querySelector('[x-data]')._x_dataStack[0];
+        clearTimeout(self.idleTimer);
+        self.idleTimer = setTimeout(() => {
+          self.returnToServices();
+        }, 3 * 60 * 1000);
+      },
+
+      returnToServices() {
+        ['mousemove', 'keydown', 'click', 'input'].forEach(event =>
+          document.removeEventListener(event, this.resetIdleTimer)
+        );
+        this.resetForm();
+        window.location.href = '/kiosk';
+      },
+
+      initializeCalendar() {
+        const currentYear = new Date().getFullYear();
+        const minYear = currentYear - 100;
+        const maxYear = currentYear - 18;
+        this.availableYears = [];
+        for (let year = maxYear; year >= minYear; year--) this.availableYears.push(year);
+        this.calendarYear = maxYear;
+      },
+
+      toggleCalendar() {
+        this.showCalendar = !this.showCalendar;
+        if (this.showCalendar) {
+          if (this.form.birthdate) {
+            const date = new Date(this.form.birthdate);
+            this.calendarMonth = date.getMonth();
+            this.calendarYear = date.getFullYear();
           }
-        },
-
-        // Calendar
-        showCalendar: false,
-        calendarMonth: new Date().getMonth(),
-        calendarYear: new Date().getFullYear(),
-        calendarDays: [],
-        availableYears: [],
-        months: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
-
-        // Idle Timer
-        idleTimer: null,
-
-        init() {
-          const params = new URLSearchParams(window.location.search);
-          this.form.service_type = params.get('service_type') || 'Tax Declaration';
-
-          const today = new Date();
-          this.minBirthdate = new Date(today.getFullYear() - 100, 0, 1).toISOString().split('T')[0];
-          this.maxBirthdate = new Date(today.getFullYear() - 18, 11, 31).toISOString().split('T')[0];
-
-          this.initializeCalendar();
           this.updateCalendar();
+        }
+      },
 
-          this.startIdleTimer();
-        },
+      closeCalendar() {
+        this.showCalendar = false;
+      },
 
-        startIdleTimer() {
-          this.resetIdleTimer();
-          ['mousemove', 'keydown', 'click', 'input'].forEach(event =>
-            document.addEventListener(event, this.resetIdleTimer)
-          );
-        },
+      updateCalendar() {
+        const firstDay = new Date(this.calendarYear, this.calendarMonth, 1);
+        const lastDay = new Date(this.calendarYear, this.calendarMonth + 1, 0);
+        const startDate = new Date(firstDay);
+        startDate.setDate(startDate.getDate() - firstDay.getDay());
 
-        resetIdleTimer: () => {
-          const self = document.querySelector('[x-data]')._x_dataStack[0];
-          clearTimeout(self.idleTimer);
-          self.idleTimer = setTimeout(() => {
-            self.returnToServices();
-          }, 3 * 60 * 1000);
-        },
+        const today = new Date();
+        const selectedDate = this.form.birthdate ? new Date(this.form.birthdate) : null;
+        const minDate = new Date(this.calendarYear - 100, 0, 1);
+        const maxDate = new Date();
+        maxDate.setFullYear(maxDate.getFullYear() - 18, 11, 31);
 
-        returnToServices() {
-          ['mousemove', 'keydown', 'click', 'input'].forEach(event =>
-            document.removeEventListener(event, this.resetIdleTimer)
-          );
-          this.resetForm();
-          window.location.href = '/kiosk';
-        },
+        this.calendarDays = [];
+        for (let i = 0; i < 42; i++) {
+          const date = new Date(startDate);
+          date.setDate(startDate.getDate() + i);
+          const isCurrentMonth = date.getMonth() === this.calendarMonth;
+          const isToday = date.toDateString() === today.toDateString();
+          const isSelected = selectedDate && date.toDateString() === selectedDate.toDateString();
+          const isSelectable = date >= minDate && date <= maxDate;
 
-        initializeCalendar() {
-          const currentYear = new Date().getFullYear();
-          const minYear = currentYear - 100;
-          const maxYear = currentYear - 18;
-          this.availableYears = [];
-          for (let year = maxYear; year >= minYear; year--) this.availableYears.push(year);
-          this.calendarYear = maxYear;
-        },
+          this.calendarDays.push({
+            day: date.getDate(),
+            date: new Date(date),
+            isToday,
+            selected: isSelected,
+            otherMonth: !isCurrentMonth,
+            selectable: isSelectable,
+            key: `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`
+          });
+        }
+      },
 
-        toggleCalendar() {
-          this.showCalendar = !this.showCalendar;
-          if (this.showCalendar) {
-            if (this.form.birthdate) {
-              const date = new Date(this.form.birthdate);
-              this.calendarMonth = date.getMonth();
-              this.calendarYear = date.getFullYear();
-            }
-            this.updateCalendar();
-          }
-        },
+      selectDate(day) {
+        if (!day.selectable) return;
+        const dateStr = day.date.toISOString().split('T')[0];
+        this.form.birthdate = dateStr;
+        this.validateBirthdate();
+        this.closeCalendar();
+      },
 
-        closeCalendar() {
-          this.showCalendar = false;
-        },
+      previousMonth() { this.calendarMonth === 0 ? (this.calendarMonth = 11, this.calendarYear--) : this.calendarMonth--; this.updateCalendar(); },
+      nextMonth() { this.calendarMonth === 11 ? (this.calendarMonth = 0, this.calendarYear++) : this.calendarMonth++; this.updateCalendar(); },
+      canGoPrevious() { const minYear = new Date().getFullYear() - 100; return this.calendarYear > minYear || (this.calendarYear === minYear && this.calendarMonth > 0); },
+      canGoNext() { const maxYear = new Date().getFullYear() - 18; return this.calendarYear < maxYear || (this.calendarYear === maxYear && this.calendarMonth < 11); },
+      goToToday() { const today = new Date(); const maxDate = new Date(); maxDate.setFullYear(maxDate.getFullYear() - 18, 11, 31); if (today <= maxDate) { this.calendarMonth = today.getMonth(); this.calendarYear = today.getFullYear(); } else { this.calendarMonth = 11; this.calendarYear = maxDate.getFullYear(); } this.updateCalendar(); },
 
-        updateCalendar() {
-          const firstDay = new Date(this.calendarYear, this.calendarMonth, 1);
-          const lastDay = new Date(this.calendarYear, this.calendarMonth + 1, 0);
-          const startDate = new Date(firstDay);
-          startDate.setDate(startDate.getDate() - firstDay.getDay());
+      formatDateDisplay(dateString) {
+        if (!dateString) return '';
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+      },
 
-          const today = new Date();
-          const selectedDate = this.form.birthdate ? new Date(this.form.birthdate) : null;
-          const minDate = new Date(this.calendarYear - 100, 0, 1);
-          const maxDate = new Date();
-          maxDate.setFullYear(maxDate.getFullYear() - 18, 11, 31);
+      changeLanguage() {},
 
-          this.calendarDays = [];
-          for (let i = 0; i < 42; i++) {
-            const date = new Date(startDate);
-            date.setDate(startDate.getDate() + i);
-            const isCurrentMonth = date.getMonth() === this.calendarMonth;
-            const isToday = date.toDateString() === today.toDateString();
-            const isSelected = selectedDate && date.toDateString() === selectedDate.toDateString();
-            const isSelectable = date >= minDate && date <= maxDate;
+      validateBirthdate() {
+        if (!this.form.birthdate) return;
+        const birth = new Date(this.form.birthdate);
+        const today = new Date();
+        let age = today.getFullYear() - birth.getFullYear();
+        if (today.getMonth() < birth.getMonth() || (today.getMonth() === birth.getMonth() && today.getDate() < birth.getDate())) age--;
+        this.calculatedAge = age;
+        this.isAgeValid = age >= 18;
+        this.isSenior = age >= 60;
+        if (!this.isSenior) this.form.senior_id = '';
+      },
 
-            this.calendarDays.push({
-              day: date.getDate(),
-              date: new Date(date),
-              isToday,
-              selected: isSelected,
-              otherMonth: !isCurrentMonth,
-              selectable: isSelectable,
-              key: `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`
-            });
-          }
-        },
+      onPwdChange() { if (this.form.is_pwd !== 'yes') this.form.pwd_id = ''; },
+      autoFormatContact() { let raw = this.form.contact.replace(/\D/g, ''); if (raw.startsWith('63')) raw = raw.slice(2); if (raw.startsWith('0')) raw = raw.slice(1); raw = raw.slice(0, 10); let formatted = raw.replace(/(\d{3})(\d{3})(\d{4})/, (_, a, b, c) => `${a} ${b} ${c}`); this.form.contact = '+63 ' + formatted; },
+      validateContact() { const pattern = /^\+63\s\d{3}\s\d{3}\s\d{4}$/; this.isContactValid = pattern.test(this.form.contact); },
+      formatPWDId() { let raw = this.form.pwd_id.replace(/\W/g, '').toUpperCase(); let parts = [raw.slice(0, 2), raw.slice(2, 6), raw.slice(6, 9), raw.slice(9, 16)]; this.form.pwd_id = parts.filter(Boolean).join('-'); },
+      validateEmail() { const email = this.form.email.toLowerCase(); this.isEmailValid = email.endsWith('@gmail.com') || email.endsWith('@yahoo.com'); },
+      formatDate(dateString) { if (!dateString) return ''; const date = new Date(dateString); return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }); },
 
-        selectDate(day) {
-          if (!day.selectable) return;
-          const dateStr = day.date.toISOString().split('T')[0];
-          this.form.birthdate = dateStr;
-          this.validateBirthdate();
-          this.closeCalendar();
-        },
+      resetForm() {
+        this.form = { email: '', contact: '', first_name: '', middle_name: '', last_name: '', birthdate: '', is_pwd: 'no', pwd_id: '', senior_id: '', service_type: 'Tax Declaration'};
+        this.showingModal = false;
+        this.showQueueModal = false;
+        this.isEmailValid = true;
+        this.isContactValid = true;
+        this.isAgeValid = true;
+        this.isSenior = false;
+        this.calculatedAge = null;
+        this.queueNumber = null;
+        this.applicationId = null;
+        this.isPriority = false;
+        this.priorityType = '';
+      },
 
-        previousMonth() { this.calendarMonth === 0 ? (this.calendarMonth = 11, this.calendarYear--) : this.calendarMonth--; this.updateCalendar(); },
-        nextMonth() { this.calendarMonth === 11 ? (this.calendarMonth = 0, this.calendarYear++) : this.calendarMonth++; this.updateCalendar(); },
-        canGoPrevious() { const minYear = new Date().getFullYear() - 100; return this.calendarYear > minYear || (this.calendarYear === minYear && this.calendarMonth > 0); },
-        canGoNext() { const maxYear = new Date().getFullYear() - 18; return this.calendarYear < maxYear || (this.calendarYear === maxYear && this.calendarMonth < 11); },
-        goToToday() { const today = new Date(); const maxDate = new Date(); maxDate.setFullYear(maxDate.getFullYear() - 18, 11, 31); if (today <= maxDate) { this.calendarMonth = today.getMonth(); this.calendarYear = today.getFullYear(); } else { this.calendarMonth = 11; this.calendarYear = maxDate.getFullYear(); } this.updateCalendar(); },
+      get isFormValid() {
+        return this.isEmailValid && this.isContactValid && this.isAgeValid &&
+               this.form.email && this.form.contact && this.form.first_name &&
+               this.form.last_name && this.form.birthdate;
+      },
 
-        formatDateDisplay(dateString) {
-          if (!dateString) return '';
-          const date = new Date(dateString);
-          return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-        },
+      showModal() {
+        if (!this.isFormValid) {
+          alert(this.translations[this.selectedLanguage][!this.isAgeValid ? 'ageError' : 'Please fill all required fields correctly.']);
+          return;
+        }
+        this.showingModal = true;
+      },
 
-        changeLanguage() {},
+      async submitForm() {
+        this.showingModal = false;
+        try {
+          const res = await fetch("/queue/kiosk", {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: JSON.stringify(this.form),
+          });
 
-        validateBirthdate() {
-          if (!this.form.birthdate) return;
-          const birth = new Date(this.form.birthdate);
-          const today = new Date();
-          let age = today.getFullYear() - birth.getFullYear();
-          if (today.getMonth() < birth.getMonth() || (today.getMonth() === birth.getMonth() && today.getDate() < birth.getDate())) age--;
-          this.calculatedAge = age;
-          this.isAgeValid = age >= 18;
-          this.isSenior = age >= 60;
-          if (!this.isSenior) this.form.senior_id = '';
-        },
-
-        onPwdChange() { if (this.form.is_pwd !== 'yes') this.form.pwd_id = ''; },
-        autoFormatContact() { let raw = this.form.contact.replace(/\D/g, ''); if (raw.startsWith('63')) raw = raw.slice(2); if (raw.startsWith('0')) raw = raw.slice(1); raw = raw.slice(0, 10); let formatted = raw.replace(/(\d{3})(\d{3})(\d{4})/, (_, a, b, c) => `${a} ${b} ${c}`); this.form.contact = '+63 ' + formatted; },
-        validateContact() { const pattern = /^\+63\s\d{3}\s\d{3}\s\d{4}$/; this.isContactValid = pattern.test(this.form.contact); },
-        formatPWDId() { let raw = this.form.pwd_id.replace(/\W/g, '').toUpperCase(); let parts = [raw.slice(0, 2), raw.slice(2, 6), raw.slice(6, 9), raw.slice(9, 16)]; this.form.pwd_id = parts.filter(Boolean).join('-'); },
-        validateEmail() { const email = this.form.email.toLowerCase(); this.isEmailValid = email.endsWith('@gmail.com') || email.endsWith('@yahoo.com'); },
-        formatDate(dateString) { if (!dateString) return ''; const date = new Date(dateString); return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }); },
-
-        resetForm() {
-          this.form = { email: '', contact: '', first_name: '', middle_name: '', last_name: '', birthdate: '', is_pwd: 'no', pwd_id: '', senior_id: '', service_type: 'Tax Declaration' };
-          this.showingModal = false;
-          this.thankYouModal = false;
-          this.showQueueModal = false;
-          this.isEmailValid = true;
-          this.isContactValid = true;
-          this.isAgeValid = true;
-          this.isSenior = false;
-          this.calculatedAge = null;
-          this.queueNumber = null;
-          this.applicationId = null;
-          this.isPriority = false;
-          this.priorityType = '';
-        },
-
-        get isFormValid() {
-          return this.isEmailValid && this.isContactValid && this.isAgeValid &&
-                 this.form.email && this.form.contact && this.form.first_name &&
-                 this.form.last_name && this.form.birthdate;
-        },
-
-        showModal() {
-          if (!this.isFormValid) {
-            alert(this.translations[this.selectedLanguage][!this.isAgeValid ? 'ageError' : 'Please fill all required fields correctly.']);
+          const contentType = res.headers.get('content-type');
+          if (!contentType || !contentType.includes('application/json')) {
+            alert('Server error: Invalid response from server.');
             return;
           }
-          this.showingModal = true;
-        },
 
-        async submitForm() {
-          this.showingModal = false;
-          try {
-            const res = await fetch("/queue/kiosk", {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-              },
-              body: JSON.stringify(this.form),
-            });
+          const data = await res.json();
 
-            const contentType = res.headers.get('content-type');
-            if (!contentType || !contentType.includes('application/json')) {
-              alert('Server error: Invalid response from server.');
-              return;
-            }
-
-            const data = await res.json();
-
-            if (data.success) {
-              this.queueNumber = data.queue_number;
-              this.isPriority = data.is_priority;
-              this.priorityType = data.priority_type || 'Regular';
-              this.applicationId = data.application_id;
-              this.showQueueModal = true;
-
-              // ✅ Auto-print ticket
-              this.printQueueTicket();
-
-              this.resetIdleTimer();
-            } else {
-              alert(data.message || 'Submission failed');
-            }
-          } catch (err) {
-            console.error('Submission error:', err);
-            alert('Failed to connect. Please try again.');
+          if (data.success) {
+            this.queueNumber = data.queue_number;
+            this.isPriority = data.is_priority;
+            this.priorityType = data.priority_type || 'Regular';
+            this.applicationId = data.application_id;
+            this.showQueueModal = true;
+            this.resetIdleTimer();
+          } else {
+            alert(data.message || 'Submission failed');
           }
-        },
-
-        // ✅ Auto-print ticket after submission
-        printQueueTicket() {
-          if (!this.applicationId) return;
-
-          setTimeout(() => {
-            const printUrl = `/user/online/queue-ticket/${this.applicationId}`;
-            const printWindow = window.open(printUrl, 'PrintTicket', 'width=350,height=400');
-          }, 800);
+        } catch (err) {
+          console.error('Submission error:', err);
+          alert('Failed to connect. Please try again.');
         }
-      };
-    }
-  </script>
+      },
+
+      // ✅ NEW: Print via backend when "Print & Complete" is clicked
+      async printAndComplete() {
+        if (!this.applicationId) {
+          console.warn('No application ID to print');
+          this.finalizeAndRedirect();
+          return;
+        }
+
+        try {
+          const response = await fetch(`/user/online/print-ticket/${this.applicationId}`, {
+            method: 'POST',
+            headers: {
+              'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+              'Content-Type': 'application/json'
+            }
+          });
+
+          const result = await response.json();
+          if (!result.success) {
+            console.warn('Print failed:', result.message);
+          }
+        } catch (err) {
+          console.error('Print request failed:', err);
+        }
+
+        this.finalizeAndRedirect();
+      },
+
+      // ✅ Reset and redirect
+      finalizeAndRedirect() {
+        this.showQueueModal = false;
+        this.resetForm();
+        window.location.href = '/kiosk';
+      }
+    };
+  }
+</script>
 </body>
 </html>

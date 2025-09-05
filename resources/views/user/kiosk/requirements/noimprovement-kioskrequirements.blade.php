@@ -88,7 +88,9 @@
 
       return {
         requirements: [
-          'KIOSK',
+          'Certified True Copy of the Tax Declaration',
+          'Updated Real Property Tax Receipt',
+          'Valid ID (Government-issued)',
         ],
         checked: [],
         showReminder: false,

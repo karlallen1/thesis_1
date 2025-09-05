@@ -9,6 +9,7 @@ use App\Models\QueueCounter;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
+use Exception;
 
 class QueueController extends Controller
 {
@@ -69,7 +70,7 @@ class QueueController extends Controller
                 'is_pwd' => $request->is_pwd === 'yes',
                 'pwd_id' => $request->pwd_id,
                 'senior_id' => $request->senior_id,
-                'service_type' => $request->service_type,
+                'service_type' => trim($request->service_type),
                 'status' => 'pending',
                 'is_preapplied' => false,
                 'entered_queue' => true,
@@ -79,7 +80,6 @@ class QueueController extends Controller
                 'qr_expires_at' => null,
             ]);
 
-            $this->printQueueTicket($application);
 
             return response()->json([
                 'success' => true,
@@ -153,6 +153,9 @@ class QueueController extends Controller
                 'queue_number' => $queueNumber
             ]);
 
+            // 🔥 PRINT TICKET AFTER QR ENTRY
+            $this->printQueueTicket($application);
+
             // Redirect to welcome screen
             return redirect()->route('user.online.welcome', $application->id);
         } catch (\Exception $e) {
@@ -183,34 +186,99 @@ class QueueController extends Controller
         }
     }
 
-    /**
-     * Print ticket (used by iframe for auto-print)
-     */
-    public function printTicket($id)
+    // ================================
+    // 🔥 REAL ESC/POS THERMAL PRINTING
+    // ================================
+private function printQueueTicket($application)
 {
+    Log::info('🖨️ printQueueTicket: Starting', [
+        'application_id' => $application->id,
+        'queue_number' => $application->queue_number
+    ]);
+
+    $printerName = "POS58 Printer";
+    $tempFile = storage_path('app/public/print-ticket-' . uniqid() . '.bin');
+
     try {
-        // 🔥 Clean any previous output (critical for kiosk printing)
-        if (ob_get_level()) {
-            ob_clean();
+        $output = '';
+
+        // 1. Initialize printer
+        $output .= chr(27) . chr(64);
+
+        // 2. Center alignment
+        $output .= chr(27) . chr(97) . chr(1);
+
+        // 3. Large header: NORTH CALOOCAN
+        $output .= chr(27) . chr(69) . chr(1); // Bold ON
+        $output .= chr(27) . chr(33) . chr(32); // Font B, double height
+        $output .= "NORTH CALOOCAN\n";
+        $output .= chr(27) . chr(33) . chr(0); // Reset
+        $output .= chr(27) . chr(69) . chr(0); // Bold OFF
+
+        // 4. Subheader: City Hall
+        $output .= "City Hall\n";
+
+        // 5. Ticket Title: QUEUE (Huge)
+        $output .= chr(27) . chr(33) . chr(48); // Double width + height
+        $output .= "QUEUE TICKET\n";
+        $output .= chr(27) . chr(33) . chr(0); // Reset
+
+        // 6. Divider
+        $output .= str_repeat("-", 32) . "\n";
+
+        // 7. Queue Number (Massive)
+        $output .= chr(27) . chr(33) . chr(16); // Large font
+        $output .= $application->queue_number . "\n";
+        $output .= chr(27) . chr(33) . chr(0); // Reset
+
+        // 8. Divider
+        $output .= str_repeat("-", 32) . "\n";
+
+        // 9. Info Section (Left align)
+        $output .= chr(27) . chr(97) . chr(0); // Left align
+        $output .= chr(27) . chr(33) . chr(8); // Small font
+        $fullName = trim("{$application->first_name} {$application->middle_name} {$application->last_name}");
+        $output .= "Name: {$fullName}\n";
+        $output .= "Service: {$application->service_type}\n";
+
+        // 10. Priority badge (if any)
+        if ($application->isPriority()) {
+            $output .= chr(27) . chr(69) . chr(1);
+            $output .= "PRIORITY: " . strtoupper($application->getPriorityType()) . "\n";
+            $output .= chr(27) . chr(69) . chr(0);
         }
 
-        $application = Application::findOrFail($id);
+        // 11. Footer
+        $output .= "\n";
+        $output .= "Please wait for your turn.\n";
 
-        return view('user.online.queue-ticket', compact('application'));
+        // 12. Cut
+        $output .= "\n\n";
+        $output .= chr(29) . "V" . chr(66); // Partial cut
+
+        // Save and print
+        file_put_contents($tempFile, $output);
+
+        $command = "print /D:\"\\\\localhost\\{$printerName}\" \"{$tempFile}\"";
+        exec($command, $outputExec, $returnCode);
+
+        if ($returnCode === 0) {
+            Log::info('✅ Styled ticket printed successfully', ['queue_number' => $application->queue_number]);
+        } else {
+            Log::error('❌ Print failed (styled)', ['return_code' => $returnCode, 'command' => $command]);
+        }
+
+        @unlink($tempFile);
     } catch (\Exception $e) {
-        // 🔥 Clean again before error response
-        if (ob_get_level()) {
-            ob_clean();
-        }
-
-        Log::error('Ticket print error: ' . $e->getMessage());
-        return response('Application not found.', 404);
+        Log::error('🖨️ Print failed', ['error' => $e->getMessage()]);
+        @unlink($tempFile);
     }
 }
 
-    /**
-     * Get current queue status (for admin dashboard)
-     */
+    // ================================
+    // ✅ ALL ORIGINAL METHODS BELOW
+    // ================================
+
     public function index(Request $request)
     {
         try {
@@ -302,9 +370,6 @@ class QueueController extends Controller
         }
     }
 
-    /**
-     * Public Queue Display Data
-     */
     public function displayData(Request $request)
     {
         try {
@@ -353,9 +418,6 @@ class QueueController extends Controller
         }
     }
 
-    /**
-     * Call next person
-     */
     public function next(Request $request)
     {
         try {
@@ -408,9 +470,6 @@ class QueueController extends Controller
         }
     }
 
-    /**
-     * Complete application
-     */
     public function complete(Request $request, $id)
     {
         try {
@@ -429,9 +488,6 @@ class QueueController extends Controller
         }
     }
 
-    /**
-     * Cancel application
-     */
     public function cancel(Request $request, $id)
     {
         try {
@@ -450,9 +506,6 @@ class QueueController extends Controller
         }
     }
 
-    /**
-     * Requeue application
-     */
     public function requeue(Request $request, $id)
     {
         try {
@@ -474,9 +527,6 @@ class QueueController extends Controller
         }
     }
 
-    /**
-     * Complete currently serving
-     */
     public function completeNow(Request $request)
     {
         $nowServing = QueueState::getNowServing();
@@ -484,9 +534,6 @@ class QueueController extends Controller
         return $this->complete($request, $nowServing->id);
     }
 
-    /**
-     * Cancel currently serving
-     */
     public function cancelNow(Request $request)
     {
         $nowServing = QueueState::getNowServing();
@@ -494,9 +541,6 @@ class QueueController extends Controller
         return $this->cancel($request, $nowServing->id);
     }
 
-    /**
-     * Requeue currently serving
-     */
     public function requeueNow(Request $request)
     {
         $nowServing = QueueState::getNowServing();
@@ -505,9 +549,6 @@ class QueueController extends Controller
         return $this->requeue($request, $nowServing->id);
     }
 
-    /**
-     * Generate next queue number (atomic & daily reset)
-     */
     private function generateQueueNumber()
     {
         return DB::transaction(function () {
@@ -519,9 +560,6 @@ class QueueController extends Controller
         });
     }
 
-    /**
-     * Calculate estimated wait time
-     */
     private function calculateEstimatedWait($application)
     {
         $position = Application::where('entered_queue', true)
@@ -538,28 +576,10 @@ class QueueController extends Controller
         return $hours . 'h ' . ($minutes > 0 ? $minutes . 'm' : '');
     }
 
-    /**
-     * Print queue ticket (placeholder)
-     */
-    private function printQueueTicket($application)
-    {
-        Log::info('Printing queue ticket', [
-            'queue_number' => $application->queue_number,
-            'service_type' => $application->service_type,
-            'applicant' => $application->full_name,
-            'is_priority' => $application->isPriority(),
-            'estimated_wait' => $this->calculateEstimatedWait($application)
-        ]);
-    }
-
-    /**
-     * Handle QR scan and show welcome screen (web view version)
-     */
     public function handleScan(Request $request)
     {
         $token = $request->get('token');
 
-        // If no token, show scanner page
         if (!$token) {
             return view('user.online.scan-qr');
         }
@@ -585,7 +605,6 @@ class QueueController extends Controller
                 ]);
             }
 
-            // Assign queue number
             $queueNumber = $this->generateQueueNumber();
             $application->update([
                 'entered_queue' => true,
@@ -598,7 +617,6 @@ class QueueController extends Controller
                 'queue_number' => $queueNumber
             ]);
 
-            // Show welcome screen directly
             return view('user.online.welcome', compact('application'));
         } catch (\Exception $e) {
             Log::error('QR scan failed', [
@@ -652,7 +670,6 @@ class QueueController extends Controller
             ], 410);
         }
 
-        // Enter into queue
         $queueNumber = $this->generateQueueNumber();
         $application->update([
             'entered_queue' => true,
@@ -667,15 +684,55 @@ class QueueController extends Controller
         ]);
 
         return response()->json([
-    'success' => true,
-    'name' => $application->full_name,
-    'queue_number' => $queueNumber,
-    'service_type' => $application->service_type,
-    'is_priority' => $application->isPriority(),
-    'priority_type' => $application->getPriorityType(),
-    'estimated_wait' => $this->calculateEstimatedWait($application),
-    'application_id' => $application->id  // ← Add this line
-]);
-      
+            'success' => true,
+            'name' => $application->full_name,
+            'queue_number' => $queueNumber,
+            'service_type' => $application->service_type,
+            'is_priority' => $application->isPriority(),
+            'priority_type' => $application->getPriorityType(),
+            'estimated_wait' => $this->calculateEstimatedWait($application),
+            'application_id' => $application->id
+        ]);
     }
+
+    /**
+     * API endpoint: Trigger real thermal printing (manual print)
+     */
+        public function printTicketPost($id)
+        {
+            ob_clean(); // 🚨 CRITICAL: Remove any buffered output
+
+            Log::info('🖨️ printTicketPost called', ['id' => $id]);
+
+            try {
+                $application = Application::findOrFail($id);
+                $this->printQueueTicket($application);
+                return response()->json(['success' => true]);
+            } catch (\Exception $e) {
+                Log::error('🖨️ Manual print failed', [
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString()
+                ]);
+                return response()->json(['success' => false, 'message' => 'Print failed'], 500);
+            }
+        }
+    /**
+ * Show printable HTML ticket (for preview or iframe)
+ */
+        public function printTicket($id)
+        {
+            try {
+                $application = Application::findOrFail($id);
+
+                // Optional: Only allow if already in queue
+                if (!$application->entered_queue) {
+                    abort(403, 'Application not yet in queue.');
+                }
+
+                return view('user.online.queue-ticket', compact('application'));
+            } catch (\Exception $e) {
+                Log::error('Failed to load ticket view', ['error' => $e->getMessage(), 'id' => $id]);
+                abort(404, 'Ticket not found.');
+            }
+        }
 }

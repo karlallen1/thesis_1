@@ -94,7 +94,17 @@
       const serviceType = urlParams.get('service_type') || 'Certificate of Property Holdings';
 
       return {
-        requirements: ['Tax Declaration', 'Valid ID', 'Barangay Certificate'],
+        requirements: [
+          'Letter Request',
+          'Proof of Ownership (TCT/OCT/CCT)',
+          'Valid ID (Government-issued)',
+          'Deed of Conveyance',
+          'Certificate Authorizing Registration (CAR)',
+          'Latest Real Property Tax Receipt/Tax Clearance (Amilyar/Tax Clearance)',
+          'Transfer Tax Receipt',
+          'Pictures of the Property/Structure',
+          'Transfer Fee Receipt',
+        ],
         checked: [],
         showReminder: false,
         serviceType: serviceType,

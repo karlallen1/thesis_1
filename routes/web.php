@@ -39,10 +39,8 @@ Route::middleware(['web'])->group(function () {
         return view('user.online.scan-qr');
     })->name('scan.qr');
 
-    // ADD THESE NEW ROUTES FOR THE MISSING FUNCTIONALITY
     // API endpoint for QR scanner (returns JSON)
-Route::post('/api/scan-qr', [QueueController::class, 'handleScanAjax'])->name('api.scan.qr');
-
+    Route::post('/api/scan-qr', [QueueController::class, 'handleScanAjax'])->name('api.scan.qr');
 });
 
 // ======================
@@ -50,7 +48,7 @@ Route::post('/api/scan-qr', [QueueController::class, 'handleScanAjax'])->name('a
 // ======================
 Route::middleware(['web'])->group(function () {
     // Kiosk service selection
-    Route::get('/kiosk', fn() => view('user.kiosk.kioskservices'))->name('kioskservices');
+    Route::get('/kiosk-services', fn() => view('user.kiosk.kioskservices'))->name('kioskservices');
 
     // Kiosk Requirements
     Route::get('/kiosk/requirements/tax-declaration', fn() => view('user.kiosk.requirements.taxdeclaration-kioskrequirements'))->name('kiosk.req.tax-declaration');
@@ -91,18 +89,13 @@ Route::middleware(['web'])->group(function () {
 // ======================
 // ADMIN ROUTES - NEW FLOW
 // ======================
-
-// 🌐 Public Admin Tab (Landing Page)
 Route::get('/admin', function () {
     return view('admin.admin-tab');
 })->name('admin.home');
 
-// 🔐 Admin Login & Auth
 Route::prefix('admin')->group(function () {
     Route::get('/login', [AdminAuthController::class, 'showLoginForm'])->name('admin.login');
     Route::post('/login', [AdminAuthController::class, 'login']);
-
-    // POST logout only
     Route::post('/logout', [AdminAuthController::class, 'logout'])
         ->middleware('admin.auth')
         ->name('admin.logout');
@@ -112,8 +105,6 @@ Route::prefix('admin')->group(function () {
 // PROTECTED ADMIN ROUTES
 // ======================
 Route::middleware(['admin.auth'])->prefix('admin')->name('admin.')->group(function () {
-
-    // Dashboard redirect
     Route::get('/dashboard', function () {
         $role = session('role');
         if ($role === 'admin') {
@@ -124,12 +115,10 @@ Route::middleware(['admin.auth'])->prefix('admin')->name('admin.')->group(functi
         return redirect()->route('admin.home');
     })->name('dashboard');
 
-    // Dashboards
     Route::get('/dashboard-main', [DashboardController::class, 'index'])->name('dashboard-main');
     Route::get('/dashboard-staff', [DashboardController::class, 'index'])->name('dashboard-staff');
     Route::get('/dashboard-stats', [DashboardController::class, 'getStats'])->name('dashboard.stats');
 
-    // Queue Status
     Route::get('/queuestatus', function () {
         return view('admin.queuestatus');
     })->name('queuestatus');
@@ -144,7 +133,7 @@ Route::middleware(['admin.auth'])->prefix('admin')->name('admin.')->group(functi
     Route::post('/queue/cancel-now', [QueueController::class, 'cancelNow']);
     Route::post('/queue/requeue-now', [QueueController::class, 'requeueNow']);
 
-    // 🔒 ADMIN ONLY (formerly main_admin)
+    // 🔒 ADMIN ONLY
     Route::middleware(['admin.auth:admin'])->group(function () {
         Route::get('/usermanagement', function () {
             return view('admin.usermanagement');
@@ -163,7 +152,7 @@ Route::middleware(['admin.auth'])->prefix('admin')->name('admin.')->group(functi
     });
 });
 
-// 🔧 Staff-specific API (if needed)
+// 🔧 Staff-specific API
 Route::middleware(['admin.auth'])->prefix('staff')->group(function () {
     Route::get('/dashboard-stats', [DashboardController::class, 'getStats']);
 });
@@ -179,24 +168,15 @@ Route::get('/queue/expired', function () {
 
 Route::get('/queue/data', [QueueController::class, 'displayData'])->name('queue.display-data');
 
-// REMOVED THE OLD DUPLICATE ROUTE - NOW HANDLED IN QueueController
-// Route::get('/ticket/print/{id}', function ($id) { ... })
-
-// Show welcome screen after QR scan
+// ✅ Show welcome screen after QR scan
 Route::get('/user/online/welcome/{id}', [QueueController::class, 'showWelcome'])->name('user.online.welcome');
 
-// Print ticket (for auto-print)
+// ✅ Print ticket (for auto-print via iframe)
 Route::get('/user/online/queue-ticket/{id}', [QueueController::class, 'printTicket'])->name('user.online.queue-ticket');
 
-// Remove any duplicate /ticket/print routes
+// ✅ Add this route
+Route::post('/user/online/print-ticket/{id}', [QueueController::class, 'printTicketPost'])->name('user.online.print-ticket.post');
 
-Route::get('/ticket/print/{id}', function ($id) {
-    try {
-        $application = \App\Models\Application::findOrFail($id);
-        return view('user.online.queue-ticket', compact('application'));
-    } catch (\Exception $e) {
-        return response('Application not found.', 404);
-    }
-})->name('ticket.print');
-
-Route::get('/user/online/queue-ticket/{id}', [QueueController::class, 'printTicket'])->name('user.online.queue-ticket');
+Route::get('/kiosk', function () {
+    return view('user.kiosk-home');
+})->name('kiosk.home');
