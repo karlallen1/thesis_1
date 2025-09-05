@@ -279,42 +279,7 @@
                 </div>
             </a>
         </div>
-
-        <!-- Additional Info Section -->
-        <div class="mt-16 text-center fade-slide-in">
-            <div class="bg-white/95 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-8 max-w-3xl mx-auto">
-                <div class="flex items-center justify-center mb-6">
-                    <div class="w-16 h-16 bg-gradient-to-br from-amber-400 to-amber-600 rounded-full flex items-center justify-center">
-                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
-                    </div>
-                </div>
-                <h3 class="text-2xl font-georgia font-bold text-gray-900 mb-4">Need Assistance?</h3>
-                <p class="text-gray-600 leading-relaxed mb-6">
-                    Our friendly staff is here to help you navigate through the process. 
-                    If you need guidance selecting the right service, please don't hesitate to ask.
-                </p>
-                <div class="flex flex-wrap justify-center gap-4 text-sm text-gray-500">
-                    <span class="bg-gray-100 px-4 py-2 rounded-full">✓ Fast Processing</span>
-                    <span class="bg-gray-100 px-4 py-2 rounded-full">✓ Digital Queue System</span>
-                    <span class="bg-gray-100 px-4 py-2 rounded-full">✓ Professional Service</span>
-                </div>
-            </div>
-        </div>
     </main>
-
-    <!-- Footer -->
-    <footer class="bg-gray-900/90 backdrop-blur-sm text-white py-8 mt-16 relative z-10 border-t border-white/10">
-        <div class="container mx-auto px-6 text-center">
-            <p class="text-gray-300 font-georgia font-medium text-lg">
-                North Caloocan City Hall - Queue Management System
-            </p>
-            <p class="text-gray-400 text-sm mt-2">
-                &copy; 2025 NCC | Serving the Community with Excellence
-            </p>
-        </div>
-    </footer>
 
     <!-- Alpine.js for DateTime -->
     <script>

@@ -649,20 +649,11 @@
     </div>
   </div>
 
-  <!-- Thank You Modal -->
-  <div x-show="thankYouModal" class="modal" x-transition>
-    <div class="modal-content">
-      <h2 class="modal-title" x-text="translations[selectedLanguage].thankYou"></h2>
-      <p class="modal-body" x-text="translations[selectedLanguage].thankYouMessage"></p>
-      <button @click="thankYouModal = false; resetForm(); window.location.href='/kiosk'" class="modal-btn">Complete</button>
-    </div>
-  </div>
-
   <!-- Queue Success Modal -->
   <div x-show="showQueueModal" x-transition class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
     <div class="bg-white p-6 rounded-xl shadow-lg w-full max-w-md text-center">
       <h2 class="text-2xl font-bold text-green-600 mb-2">Welcome to the Queue!</h2>
-      <p class="text-lg mb-4">Your ticket is printing...</p>
+      <p class="text-lg mb-4">Click below to print your ticket.</p>
       <div class="bg-gray-100 p-4 rounded-lg mb-4">
         <div class="text-sm text-gray-600">Your Queue Number</div>
         <div class="text-4xl font-bold text-blue-600 mt-1" x-text="queueNumber"></div>
@@ -671,9 +662,9 @@
         <span x-text="priorityType"></span> Priority
       </div>
       <button 
-          @click="showQueueModal = false; resetForm(); window.location.href='/kiosk'"
-          class="mt-6 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded">
-        Complete
+        @click="printAndComplete()"
+        class="mt-6 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded">
+        Print & Complete
       </button>
     </div>
   </div>
@@ -687,10 +678,9 @@
           birthdate: '', is_pwd: 'no', pwd_id: '', senior_id: '', service_type: ''
         },
         showingModal: false,
-        thankYouModal: false,
         showQueueModal: false,
         queueNumber: null,
-        applicationId: null, // ✅ Store application ID for printing
+        applicationId: null,
         isPriority: false,
         priorityType: '',
 
@@ -900,7 +890,6 @@
         resetForm() {
           this.form = { email: '', contact: '', first_name: '', middle_name: '', last_name: '', birthdate: '', is_pwd: 'no', pwd_id: '', senior_id: '', service_type: 'Non-Property Holdings' };
           this.showingModal = false;
-          this.thankYouModal = false;
           this.showQueueModal = false;
           this.isEmailValid = true;
           this.isContactValid = true;
@@ -935,7 +924,7 @@
               headers: {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
               },
               body: JSON.stringify(this.form),
             });
@@ -954,10 +943,7 @@
               this.priorityType = data.priority_type || 'Regular';
               this.applicationId = data.application_id;
               this.showQueueModal = true;
-
-              // ✅ Auto-print ticket
-              this.printQueueTicket();
-
+              // ✅ No auto-print
               this.resetIdleTimer();
             } else {
               alert(data.message || 'Submission failed');
@@ -968,16 +954,41 @@
           }
         },
 
-        // ✅ Auto-print ticket after submission
-        printQueueTicket() {
-          if (!this.applicationId) return;
+        // ✅ NEW: Print via backend when "Print & Complete" is clicked
+        async printAndComplete() {
+          if (!this.applicationId) {
+            console.warn('No application ID to print');
+            this.finalizeAndRedirect();
+            return;
+          }
 
-          setTimeout(() => {
-            const printUrl = `/user/online/queue-ticket/${this.applicationId}`;
-            const printWindow = window.open(printUrl, 'PrintTicket', 'width=350,height=400');
-          }, 800);
+          try {
+            const response = await fetch(`/user/online/print-ticket/${this.applicationId}`, {
+              method: 'POST',
+              headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                'Content-Type': 'application/json'
+              }
+            });
+
+            const result = await response.json();
+            if (!result.success) {
+              console.warn('Print failed:', result.message);
+            }
+          } catch (err) {
+            console.error('Print request failed:', err);
+          }
+
+          this.finalizeAndRedirect();
+        },
+
+        // ✅ Reset and redirect
+        finalizeAndRedirect() {
+          this.showQueueModal = false;
+          this.resetForm();
+          window.location.href = '/kiosk';
         }
-      };
+      }
     }
   </script>
 </body>

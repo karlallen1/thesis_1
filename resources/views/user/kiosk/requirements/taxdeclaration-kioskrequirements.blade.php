@@ -101,8 +101,13 @@
 
       return {
         requirements: [
-          '',
-          ''
+          'Request for Issuance of Updated Tax Declaration form',
+          'Title (Certified True Xerox Copy)',
+          'Updated Real Property Tax Payment (Amilyar) ',
+          'Latest Tax Declaration (TD/OHA)', 
+          'Deed of Sale/ Extra Judicial Settlement/ Partition Agreement',
+          'Transfer Tax Receipt',
+          'Certificate Authorizing Registration (CAR) from BIR (Bureau of Internal Revenue)',
         ],
         checked: [],
         showReminder: false,
