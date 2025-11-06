@@ -66,6 +66,9 @@ class ApplicationController extends Controller
             $age = Carbon::parse($request->birthdate)->age;
             $qrToken = Str::random(32);
             
+            //pinthingys
+            $pinCode = str_pad(random_int(100000, 999999), 6, '0', STR_PAD_LEFT);
+
             // ✅ UPDATED: Changed from 36 hours to 24 hours
             $qrExpiresAt = now()->addHours(24);
 
@@ -86,6 +89,7 @@ class ApplicationController extends Controller
                 'entered_queue' => false,
                 'qr_token' => $qrToken,
                 'qr_expires_at' => $qrExpiresAt,
+                'pin_code' => $pinCode,//pinadd
             ]);
 
             Log::info('Application saved to DB with 24-hour QR validity', [

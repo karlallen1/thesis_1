@@ -31,6 +31,9 @@ class Application extends Model
         'queue_entered_at', // ✅ Add this
         'completed_at',     // ✅ Add this
         'cancelled_at',     // ✅ Add this
+        'pin_code',
+        'pin_expires_at',
+        
     ];
 
     protected $casts = [

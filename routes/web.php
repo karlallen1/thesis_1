@@ -15,6 +15,8 @@ Route::middleware(['web'])->group(function () {
     // Landing and Services
     Route::get('/', fn() => view('user.online.landing'))->name('user.landing');
     Route::get('/services', fn() => view('user.online.services'))->name('user.services');
+    Route::get('/pre-regform', fn() => view('user.online.pre-regform'))->name('user,pre-regform');
+
 
     // Requirements pages
     Route::view('/requirements/tax-declaration', 'user.online.requirements.tax-declaration-requirements')->name('req.tax-declaration');
@@ -180,3 +182,31 @@ Route::post('/user/online/print-ticket/{id}', [QueueController::class, 'printTic
 Route::get('/kiosk', function () {
     return view('user.kiosk-home');
 })->name('kiosk.home');
+
+
+////////////esp32 mailbox integ
+Route::post('/mailbox/submit', [App\Http\Controllers\MailboxController::class, 'store'])->name('mailbox.submit');
+
+// For IoT mailbox to validate PIN
+Route::post('/api/mailbox/validate-pin', [App\Http\Controllers\MailboxController::class, 'validatePin'])
+    ->name('mailbox.validate-pin');
+
+
+Route::middleware(['admin.auth'])->prefix('admin')->name('admin.')->group(function () {
+    // ... existing routes ...
+
+    // MAILBOX TAB
+    Route::get('/mailbox', function () {
+        return view('admin.mailbox');
+    })->name('mailbox');
+
+    // API endpoint for mailbox data (used by frontend)
+    Route::get('/mailbox/data', [App\Http\Controllers\MailboxController::class, 'getMailboxSubmissions'])
+         ->name('mailbox.data');
+
+    // Approve / Disapprove actions
+    Route::post('/mailbox/{id}/approve', [App\Http\Controllers\MailboxController::class, 'approveSubmission'])
+         ->name('mailbox.approve');
+    Route::post('/mailbox/{id}/disapprove', [App\Http\Controllers\MailboxController::class, 'disapproveSubmission'])
+         ->name('mailbox.disapprove');
+});

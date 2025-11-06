@@ -2,13 +2,14 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>North Caloocan City Hall - Walk-in Services</title>
-    <link rel="icon" href="{{ asset('img/mainlogo.png') }}" type="image/png">
-    <!-- Tailwind CSS -->
+    <link rel="icon" href="{{ asset('img/mainlogo.png') }}" type="image/png"/>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-    <!-- Alpine.js -->
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&display=swap" rel="stylesheet">
 
     <style>
         .font-georgia { 
@@ -17,316 +18,295 @@
         
         body {
             font-family: Georgia, 'Times New Roman', Times, serif;
-            background-image: url('{{ asset('img/bgbackground2.jpg') }}');
-            background-size: cover;
-            background-position: center;
-            background-attachment: fixed;
-            background-repeat: no-repeat;
+            background-color: #f9fafb;
+            margin: 0;
+            min-height: 100vh;
         }
-        
-        .bg-overlay {
-            background: rgba(0, 0, 0, 0.6);
-            backdrop-filter: blur(2px);
+
+        .logo {
+            width: 140px;
+            height: 140px;
+            object-fit: contain;
+            margin: 0 auto 2rem;
+            display: block;
         }
-        
-        .header-glass {
-            background: rgba(245, 158, 11, 0.95);
-            backdrop-filter: blur(20px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-        }
-        
-        .service-card {
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(15px);
-            position: relative;
-            overflow: hidden;
-            background: rgba(255, 255, 255, 0.95);
-        }
-        
-        .service-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
+
+        /* grid container */
+        .card-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
             width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
-            transition: left 0.6s;
         }
-        
-        .service-card:hover::before {
-            left: 100%;
+
+        /* card (clickable) */
+        .card {
+            border: 1px solid #e5e7eb;
+            border-radius: 16px;
+            padding: 3rem 2rem;
+            background-color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 350px;
+            width: 100%;
+            text-decoration: none; /* for anchors */
+            color: inherit;
+            transform-origin: center;
+            transition: transform 220ms cubic-bezier(.2,.8,.2,1), box-shadow 220ms;
+            will-change: transform;
+            cursor: pointer;
+            box-shadow: 0 6px 18px rgba(15, 23, 42, 0.04);
         }
-        
-        .service-card:hover {
-            transform: translateY(-12px) scale(1.03);
-            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
-            border-color: rgba(0, 0, 0, 0.1);
+
+        /* hover lift */
+        .card:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
         }
-        
-        .service-icon {
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+        /* keyboard focus */
+        .card:focus-visible {
+            outline: 3px solid rgba(37,99,235,0.15);
+            outline-offset: 6px;
         }
-        
-        .service-card:hover .service-icon {
-            transform: scale(1.15) rotate(5deg);
+
+        /* impulse keyframes (used on click/tap/keyboard) */
+        @keyframes impulse {
+            0%   { transform: scale(1); }
+            30%  { transform: scale(0.92); }
+            60%  { transform: scale(1.06); }
+            100% { transform: scale(1); }
         }
-        
-        .btn-ripple {
-            position: relative;
-            overflow: hidden;
+
+        /* add the animation class when triggered */
+        .impulse {
+            animation: impulse 320ms cubic-bezier(.2,.8,.2,1);
         }
-        
-        .btn-ripple::after {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 0;
-            height: 0;
-            background: rgba(255, 255, 255, 0.4);
-            border-radius: 50%;
-            transform: translate(-50%, -50%);
-            transition: width 0.8s, height 0.8s;
+
+        .icon {
+            width: 80px;
+            height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 16px;
+            margin-bottom: 2.5rem;
         }
-        
-        .btn-ripple:active::after {
-            width: 300px;
-            height: 300px;
+
+        .btn {
+            padding: 0.8rem 2rem;
+            font-weight: bold;
+            font-size: 1.1rem;
+            border-radius: 8px;
+            transition: none;
+            margin-top: 2.5rem;
+            width: fit-content;
+            text-decoration: none;
+            color: white;
+            text-align: center;
         }
-        
-        @keyframes fadeSlideIn {
-            from {
-                opacity: 0;
-                transform: translateY(40px);
+
+        .btn-amber { background-color: #d97706; } /* amber-600 */
+        .btn-blue  { background-color: #2563eb; } /* blue-600 */
+        .btn-green { background-color: #16a34a; } /* green-600 */
+        .btn-purple{ background-color: #9333ea; } /* purple-600 */
+
+        h2 {
+            font-family: 'Newsreader', sans-serif; 
+            font-size: 3rem;
+            font-weight: 600;                    
+            margin-bottom: 2.5rem;
+            text-align: center;
+            color: #000;
+        }
+
+        h3 {
+            font-size: 1.6rem;
+            margin: 0;
+            color: #1f2937;
+            font-weight: bold;
+        }
+
+        p {
+            font-size: 1.1rem;
+            color: #555;
+            text-align: center;
+            margin: 0.75rem 0 0 0;
+        }
+
+        #datetime {
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 0.75rem 1.25rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            font-family: 'Times New Roman', Times, serif;
+            backdrop-filter: blur(4px);
+            border: 1px solid #e5e7eb;
+            pointer-events: none;
+        }
+
+        #datetime div { line-height: 1.2; }
+
+        #datetime .date {
+            font-size: 0.95rem;
+            color: #4b5563;
+            font-weight: normal;
+        }
+
+        #datetime .time {
+            font-size: 1.1rem;
+            color: #1f2937;
+            font-weight: bold;
+        }
+
+        @media (max-width: 768px) {
+            .card {
+                padding: 2.2rem 1.25rem;
+                min-height: 300px;
             }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
-        .fade-slide-in {
-            animation: fadeSlideIn 0.8s ease-out forwards;
-        }
-        
-        .stagger-1 { animation-delay: 0.1s; }
-        .stagger-2 { animation-delay: 0.2s; }
-        .stagger-3 { animation-delay: 0.3s; }
-        .stagger-4 { animation-delay: 0.4s; }
-        
-        .gradient-text {
-            background: linear-gradient(135deg, #f59e0b, #d97706);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-        
-        @media (min-width: 1024px) {
-            h1 { font-size: clamp(2.5rem, 5vw, 4rem); }
-            h3 { font-size: clamp(1.25rem, 2vw, 1.5rem); }
+            .icon { width: 60px; height: 60px; }
+            h3 { font-size: 1.3rem; }
+            p { font-size: 1rem; }
+            #datetime { padding: 0.5rem 1rem; font-size: 0.9rem; }
+            #datetime .time { font-size: 1rem; }
         }
     </style>
 </head>
 
-<body class="min-h-screen">
+<body class="bg-gray-50 min-h-screen flex flex-col">
 
-    <!-- Background Overlay -->
-    <div class="fixed inset-0 bg-overlay z-0"></div>
-
-    <!-- Header -->
-    <header class="header-glass sticky top-0 z-50 relative">
-        <div class="container mx-auto px-6 py-6">
-            <div class="flex items-center justify-between">
-                <!-- Left: NCC Logo + Text -->
-                <div class="flex items-center gap-4">
-                    <img src="{{ asset('img/mainlogo.png') }}" alt="North Caloocan City Hall" class="w-16 h-16 object-contain drop-shadow-lg" />
-                    <div class="text-white">
-                        <p class="text-sm font-medium opacity-90">REPUBLIC OF THE PHILIPPINES</p>
-                        <p class="text-xl font-georgia font-bold">North Caloocan City Hall</p>
-                    </div>
-                </div>
-
-                <!-- Right: Date, Time, PH Logo -->
-                <div class="flex items-center gap-6" x-data="datetimeDisplay()" x-init="init()">
-                    <div class="text-right text-white">
-                        <p class="text-lg font-georgia font-semibold whitespace-nowrap" x-text="date"></p>
-                        <p class="text-base font-medium opacity-90 whitespace-nowrap" x-text="time"></p>
-                    </div>
-                    <img src="{{ asset('img/philogo.png') }}" alt="Philippines Logo" class="w-16 h-16 object-contain drop-shadow-lg" />
-                </div>
-            </div>
-        </div>
-    </header>
+    <!-- Time and Date Display (Top Right Corner) -->
+    <div id="datetime" class="absolute top-4 right-6 text-right z-50">
+        <div class="date">Loading...</div>
+        <div class="time">--:--:--</div>
+    </div>
 
     <!-- Main Content -->
-    <main class="container mx-auto px-6 py-16 sm:px-8 lg:px-12 max-w-7xl relative z-10">
-        
-        <!-- Welcome Header -->
-        <div class="text-center mb-16 max-w-4xl mx-auto fade-slide-in">
-            <h1 class="text-4xl sm:text-5xl lg:text-6xl font-georgia font-bold text-white mb-6 leading-tight drop-shadow-2xl">
-                <span class="text-white">Welcome!</span>
-            </h1>
-            <p class="text-xl sm:text-2xl font-georgia font-medium text-white mb-6 drop-shadow-lg">
-                SELECT A SERVICE TO GET STARTED
-            </p>
-            <div class="w-24 h-1 bg-gradient-to-r from-amber-400 to-amber-600 mx-auto rounded-full shadow-lg"></div>
+    <main class="flex-grow container mx-auto px-6 py-12 sm:px-8 lg:px-12 max-w-5xl flex flex-col items-center">
+
+        <!-- Logo & Title -->
+        <div class="text-center mb-8">
+            <h2>Choose a service to get started.</h2>
         </div>
 
-        <!-- Service Cards Grid -->
-        <div class="grid sm:grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-8 lg:gap-10">
+        <!-- Card Container -->
+        <div class="card-container">
             
             <!-- Tax Declaration -->
-            <a href="/kiosk/requirements/tax-declaration?service_type=Tax Declaration"
-               class="service-card stagger-1 fade-slide-in block bg-white rounded-2xl shadow-lg p-8 text-center hover:border-amber-200 transition-all duration-300 group">
-                <div class="flex flex-col items-center h-full">
-                    <div class="service-icon w-20 h-20 bg-gradient-to-br from-amber-400 to-amber-600 rounded-2xl flex items-center justify-center shadow-lg mb-6">
-                        <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                        </svg>
-                    </div>
-                    <div class="flex-grow flex flex-col justify-between">
-                        <div>
-                            <h3 class="text-xl font-georgia font-bold text-gray-900 mb-3 group-hover:text-amber-600 transition-colors">
-                                Tax Declaration
-                            </h3>
-                            <p class="text-gray-600 text-sm leading-relaxed mb-6">
-                                Community Tax Certificate (CTC)
-                            </p>
-                        </div>
-                        <span class="inline-block bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white font-georgia font-semibold py-3 px-6 rounded-xl transition-all duration-200 btn-ripple focus:outline-none focus:ring-4 focus:ring-amber-200 w-full mt-auto">
-                            Get Started
-                        </span>
-                    </div>
+            <a href="/kiosk/requirements/tax-declaration?service_type=Tax Declaration" class="card" >
+                <div class="icon bg-amber-100">
+                    <svg class="w-10 h-10 text-amber-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
                 </div>
+                <h3>Tax Declaration</h3>
+                <p>Community Tax Certificate (CTC)</p>
+                <span class="btn btn-amber">Get Started</span>
             </a>
 
             <!-- No Improvement -->
-            <a href="/kiosk/requirements/no-improvement?service_type=Certificate of No Improvement"
-               class="service-card stagger-2 fade-slide-in block bg-white rounded-2xl shadow-lg p-8 text-center hover:border-blue-200 transition-all duration-300 group">
-                <div class="flex flex-col items-center h-full">
-                    <div class="service-icon w-20 h-20 bg-gradient-to-br from-blue-400 to-blue-600 rounded-2xl flex items-center justify-center shadow-lg mb-6">
-                        <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-                        </svg>
-                    </div>
-                    <div class="flex-grow flex flex-col justify-between">
-                        <div>
-                            <h3 class="text-xl font-georgia font-bold text-gray-900 mb-3 group-hover:text-blue-600 transition-colors">
-                                No Improvement
-                            </h3>
-                            <p class="text-gray-600 text-sm leading-relaxed mb-6">
-                                Certificate of No Improvement
-                            </p>
-                        </div>
-                        <span class="inline-block bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-georgia font-semibold py-3 px-6 rounded-xl transition-all duration-200 btn-ripple focus:outline-none focus:ring-4 focus:ring-blue-200 w-full mt-auto">
-                            Get Started
-                        </span>
-                    </div>
+            <a href="/kiosk/requirements/no-improvement?service_type=Certificate of No Improvement" class="card" >
+                <div class="icon bg-blue-100">
+                    <svg class="w-10 h-10 text-blue-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                    </svg>
                 </div>
+                <h3>No Improvement</h3>
+                <p>Certificate of No Improvement</p>
+                <span class="btn btn-blue">Get Started</span>
             </a>
 
             <!-- Property Holdings -->
-            <a href="/kiosk/requirements/property-holdings?service_type=Certificate of Property Holdings"
-               class="service-card stagger-3 fade-slide-in block bg-white rounded-2xl shadow-lg p-8 text-center hover:border-green-200 transition-all duration-300 group">
-                <div class="flex flex-col items-center h-full">
-                    <div class="service-icon w-20 h-20 bg-gradient-to-br from-green-400 to-green-600 rounded-2xl flex items-center justify-center shadow-lg mb-6">
-                        <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z"/>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 21v-4a2 2 0 012-2h2a2 2 0 012 2v4"/>
-                        </svg>
-                    </div>
-                    <div class="flex-grow flex flex-col justify-between">
-                        <div>
-                            <h3 class="text-xl font-georgia font-bold text-gray-900 mb-3 group-hover:text-green-600 transition-colors">
-                                Property Holdings
-                            </h3>
-                            <p class="text-gray-600 text-sm leading-relaxed mb-6">
-                                Certificate of Property Holdings
-                            </p>
-                        </div>
-                        <span class="inline-block bg-green-600 hover:bg-green-700 active:bg-green-800 text-white font-georgia font-semibold py-3 px-6 rounded-xl transition-all duration-200 btn-ripple focus:outline-none focus:ring-4 focus:ring-green-200 w-full mt-auto">
-                            Get Started
-                        </span>
-                    </div>
+            <a href="/kiosk/requirements/property-holdings?service_type=Certificate of Property Holdings" class="card" >
+                <div class="icon bg-green-100">
+                    <svg class="w-10 h-10 text-green-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 21v-4a2 2 0 012-2h2a2 2 0 012 2v4"/>
+                    </svg>
                 </div>
+                <h3>Property Holdings</h3>
+                <p>Certificate of Property Holdings</p>
+                <span class="btn btn-green">Get Started</span>
             </a>
 
             <!-- Non-Property Holdings -->
-            <a href="/kiosk/requirements/non-property-holdings?service_type=Certificate of Non-Property Holdings"
-               class="service-card stagger-4 fade-slide-in block bg-white rounded-2xl shadow-lg p-8 text-center hover:border-purple-200 transition-all duration-300 group">
-                <div class="flex flex-col items-center h-full">
-                    <div class="service-icon w-20 h-20 bg-gradient-to-br from-purple-400 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg mb-6">
-                        <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4"/>
-                        </svg>
-                    </div>
-                    <div class="flex-grow flex flex-col justify-between">
-                        <div>
-                            <h3 class="text-xl font-georgia font-bold text-gray-900 mb-3 group-hover:text-purple-600 transition-colors">
-                                Non-Property Holdings
-                            </h3>
-                            <p class="text-gray-600 text-sm leading-relaxed mb-6">
-                                Certificate of Non-Property Holdings
-                            </p>
-                        </div>
-                        <span class="inline-block bg-purple-600 hover:bg-purple-700 active:bg-purple-800 text-white font-georgia font-semibold py-3 px-6 rounded-xl transition-all duration-200 btn-ripple focus:outline-none focus:ring-4 focus:ring-purple-200 w-full mt-auto">
-                            Get Started
-                        </span>
-                    </div>
+            <a href="/kiosk/requirements/non-property-holdings?service_type=Certificate of Non-Property Holdings" class="card" >
+                <div class="icon bg-purple-100">
+                    <svg class="w-10 h-10 text-purple-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4"/>
+                    </svg>
                 </div>
+                <h3>Non-Property Holdings</h3>
+                <p>Certificate of Non-Property Holdings</p>
+                <span class="btn btn-purple">Get Started</span>
             </a>
         </div>
     </main>
 
-    <!-- Alpine.js for DateTime -->
+    <!-- JavaScript for Time & Keyboard Shortcuts -->
     <script>
-        function datetimeDisplay() {
-            return {
-                date: '',
-                time: '',
-                init() {
-                    this.updateTime();
-                    setInterval(() => this.updateTime(), 1000);
-                },
-                updateTime() {
-                    const now = new Date();
-                    
-                    // Format Date
-                    const dateFormatter = new Intl.DateTimeFormat('en-US', {
-                        weekday: 'long',
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                    });
-                    this.date = dateFormatter.format(now);
+        function updateDateTime() {
+            const now = new Date();
 
-                    // Format Time
-                    const timeFormatter = new Intl.DateTimeFormat('en-US', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        second: '2-digit',
-                        hour12: true,
-                        timeZone: 'Asia/Manila'
-                    });
-                    this.time = timeFormatter.format(now);
-                }
-            };
+            const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            const dateStr = now.toLocaleDateString(undefined, dateOptions);
+            const timeStr = now.toLocaleTimeString();
+
+            document.querySelector('#datetime .date').textContent = dateStr;
+            document.querySelector('#datetime .time').textContent = timeStr;
         }
 
-        // Add keyboard shortcuts for accessibility
+        updateDateTime();
+        setInterval(updateDateTime, 1000);
+
+        // Keyboard Shortcuts (1-4)
         document.addEventListener('keydown', function(e) {
             if (e.key >= '1' && e.key <= '4') {
-                const links = document.querySelectorAll('a[href*="/kiosk/requirements"]');
+                e.preventDefault();
+                const links = [
+                    "/kiosk/requirements/tax-declaration?service_type=Tax Declaration",
+                    "/kiosk/requirements/no-improvement?service_type=Certificate of No Improvement",
+                    "/kiosk/requirements/property-holdings?service_type=Certificate of Property Holdings",
+                    "/kiosk/requirements/non-property-holdings?service_type=Certificate of Non-Property Holdings"
+                ];
                 const index = parseInt(e.key) - 1;
                 if (links[index]) {
-                    e.preventDefault();
-                    links[index].click();
+                    window.location.href = links[index];
                 }
             }
         });
+
+        // --- Impulse click/touch/keyboard trigger for cards ---
+        (function() {
+            const cards = document.querySelectorAll('.card');
+
+            function triggerImpulse(card) {
+                // restart animation
+                card.classList.remove('impulse');
+                // force reflow to restart animation reliably
+                void card.offsetWidth;
+                card.classList.add('impulse');
+            }
+
+            cards.forEach(card => {
+                // mouse / touch
+                card.addEventListener('mousedown', () => triggerImpulse(card));
+                card.addEventListener('touchstart', () => triggerImpulse(card), { passive: true });
+
+                // keyboard (Enter or Space)
+                card.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        triggerImpulse(card);
+                    }
+                });
+
+                // cleanup after animation ends
+                card.addEventListener('animationend', () => card.classList.remove('impulse'));
+            });
+        })();
     </script>
 </body>
 </html>
